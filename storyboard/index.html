@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tamanly Mobile Storyboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --indigo: #3D2B6B; --indigo-deep: #2A1D4D; --indigo-tint: #ECE9F3;
+    --coral: #E87A6B; --coral-tint: #FBE6E2;
+    --yellow: #E8B84A; --yellow-tint: #FAF0D6;
+    --mint-tint: #E3F3EC; --green: #2E9E6B;
+    --cream: #F7F3EC; --white: #fff; --ink: #1F1A2E; --muted: #6E6880; --hair: #E4DDD0;
+    --phone-w: 280px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--cream); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--indigo); }
+
+  header.top { background: var(--indigo); color: #fff; padding: 28px 24px 72px; position: relative; }
+  header.top::after { /* the wave from the app's header band */
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 48px;
+    background: var(--cream); border-radius: 32px 32px 0 0;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  /* ponytail: crops the mark out of logo.jpg; swap for the real SVG mark when it exists */
+  .brand .mark { width: 52px; height: 52px; border-radius: 16px; background: #FBF7EF url(../logo.jpg) -6px -18px / 165px auto no-repeat; }
+  .brand b { font-weight: 500; font-size: 22px; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: -0.03em; line-height: 1.05; margin: 28px 0 10px; font-weight: 700; max-width: 18ch; }
+  .lede { color: rgba(255,255,255,.75); font-size: 16px; line-height: 1.55; max-width: 62ch; margin: 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+  .pill.on-dark { background: rgba(255,255,255,.12); color: #fff; }
+  .pill.on-dark a { color: #fff; }
+
+  nav.toc { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--cream) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--hair); }
+  nav.toc .wrap { display: flex; gap: 6px; overflow-x: auto; padding: 10px 24px; scrollbar-width: none; }
+  nav.toc a { flex: none; text-decoration: none; padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--indigo); background: var(--white); box-shadow: 0 2px 8px rgba(61,43,107,.06); }
+  nav.toc a:hover { background: var(--indigo); color: #fff; }
+
+  main { padding: 8px 24px 80px; }
+  section.flow { margin-top: 56px; scroll-margin-top: 64px; }
+  .flow-head { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: start; max-width: 900px; }
+  .num { grid-row: span 2; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-weight: 700; font-size: 17px; }
+  .flow-head h2 { margin: 0; font-size: 24px; letter-spacing: -0.02em; font-weight: 700; color: var(--indigo); }
+  .flow-head p { margin: 2px 0 0; color: var(--muted); line-height: 1.5; font-size: 15px; }
+  .roles { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; grid-column: 2; }
+  .role { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--indigo-tint); color: var(--indigo); }
+  .role.guard { background: var(--yellow-tint); color: #7A5A12; }
+  .role.sub { background: var(--coral-tint); color: #9A3A2C; }
+
+  .track { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 24px 4px 28px; margin-top: 8px; scroll-snap-type: x proximity; }
+  .step { flex: none; width: var(--phone-w); scroll-snap-align: start; }
+  .phone { width: var(--phone-w); aspect-ratio: 390 / 844; border-radius: 34px; background: #111; padding: 7px; box-shadow: 0 18px 40px rgba(61,43,107,.16), 0 2px 6px rgba(61,43,107,.08); position: relative; }
+  .screen { width: 100%; height: 100%; border-radius: 28px; overflow-y: auto; overflow-x: hidden; background: var(--white); scrollbar-width: none; }
+  .screen::-webkit-scrollbar { display: none; }
+  .screen img { width: 100%; display: block; }
+  .scroll-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 600; background: rgba(31,26,46,.72); color: #fff; padding: 4px 10px; border-radius: 999px; pointer-events: none; transition: opacity .2s; }
+  .cap { margin-top: 14px; }
+  .cap .code { font-size: 12px; font-weight: 600; color: var(--coral); letter-spacing: .02em; }
+  .cap h3 { margin: 2px 0 4px; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .cap p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+  .arrow { flex: none; width: 92px; align-self: center; margin-top: -60px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 6px; text-align: center; }
+  .arrow svg { width: 64px; height: 16px; color: var(--indigo); }
+  .arrow span { font-size: 11.5px; font-weight: 500; color: var(--indigo); line-height: 1.3; }
+  .arrow.alt svg { color: var(--coral); }
+  .gap { flex: none; width: 40px; align-self: stretch; position: relative; }
+  .gap::before { content: ""; position: absolute; left: 50%; top: 20px; bottom: 120px; border-left: 2px dashed var(--hair); }
+
+  section.coverage { margin-top: 72px; scroll-margin-top: 64px; }
+  .cov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 20px; }
+  .cov { background: var(--white); border-radius: 20px; padding: 18px 20px; box-shadow: 0 8px 24px rgba(61,43,107,.06); }
+  .cov h4 { margin: 0 0 10px; font-size: 15px; color: var(--indigo); }
+  .cov ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .cov li { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; line-height: 1.4; }
+  .cov li .refs { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; flex: none; max-width: 45%; }
+  .cov li .refs a { font-size: 11.5px; font-weight: 600; text-decoration: none; background: var(--indigo-tint); color: var(--indigo); padding: 2px 7px; border-radius: 6px; }
+
+  footer { padding: 32px 24px 48px; color: var(--muted); font-size: 13px; line-height: 1.6; border-top: 1px solid var(--hair); }
+
+  @media (max-width: 640px) {
+    :root { --phone-w: 240px; }
+    header.top { padding: 20px 16px 64px; }
+    main, footer { padding-left: 16px; padding-right: 16px; }
+    nav.toc .wrap { padding: 10px 16px; }
+    .arrow { width: 72px; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><b>Tamanly</b></div>
+    <h1>Mobile app storyboard</h1>
+    <p class="lede">Every mobile feature in FEATRURES.md, laid out as user flows: 42 screens for residents, owners, sub-tenants and guards. Scroll inside a phone to see the whole screen.</p>
+    <div class="meta">
+      <span class="pill on-dark">Warm Material · Inter</span>
+      <span class="pill on-dark">Indigo #3D2B6B · Coral #E87A6B · Yellow #E8B84A · Cream #F7F3EC</span>
+      <span class="pill on-dark"><a href="https://stitch.withgoogle.com/projects/12733498436694002804" target="_blank" rel="noopener">Open in Google Stitch ↗</a></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Flows"><div class="wrap" id="toc"></div></nav>
+
+<main class="wrap" id="flows"></main>
+
+<footer class="wrap">
+  All names, units, amounts, plates and bank details are synthetic placeholders. The logo in the Welcome and Sign in screens is Stitch's redraw of the mark; swap in the real SVG lockup when building. Screens were generated in Google Stitch with the "Tamanly Warm Material" design system.
+</footer>
+
+<script>
+const ARROW = '<svg viewBox="0 0 64 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h58M53 2l7 6-7 6"/></svg>';
+
+// step: [code, title, note]  ·  arrow: {to: "label"}  ·  "|" = new branch inside the same flow
+const FLOWS = [
+  { id: "access", n: 1, tint: "--indigo-tint", title: "Access & accounts",
+    desc: "One sign in for every role. New users pick a role, verify by SMS, and link their first unit with an invite code. Owners switch between units across tamans and give sub-tenants limited access.",
+    roles: ["Owner", "Resident", "Sub-tenant", "Security", "Management"],
+    seq: [
+      ["A1", "Welcome", "Brand lockup, taman illustration, EN / BM toggle."],
+      { to: "Create account" },
+      ["A3", "Choose role", "Owner, resident, sub-tenant (invite code), security guard, management staff."],
+      { to: "Continue" },
+      ["A4", "Verify & link property", "6-digit SMS code, then link a unit with an invite code or find your taman."],
+      { to: "Lands on Home" },
+      ["H0", "Home", "Indigo header with the current property, and the switcher one tap away."],
+      "|",
+      ["A2", "Sign in", "Phone or email, Google / Apple, one-time SMS code. Same screen for every role."],
+      { to: "Tap property name", alt: true },
+      ["A5", "Property switcher", "3 units across 2 tamans with role chips (Owner, Rented, Lives here) and dues."],
+      "|",
+      ["A6", "Invite sub-tenant", "Owner picks scopes: view bills, pay, visitors, facilities, permits, marketplace. Access period."],
+      { to: "SMS / WhatsApp link" },
+      ["A7", "Accept invite", "Sub-tenant sees exactly what is granted and what is locked before accepting."],
+    ]},
+  { id: "community", n: 2, tint: "--yellow-tint", title: "Home & community",
+    desc: "The taman home feed carries alerts and announcements. The directory lists facilities and trusted vendors. The marketplace is for neighbours buying, selling and offering services.",
+    roles: ["Resident", "Owner", "Sub-tenant"],
+    seq: [
+      ["H0", "Home feed", "Disruption alert, quick actions, bill-due card, announcements."],
+      { to: "Directory" },
+      ["B1", "Directory", "Facilities, trusted services (call / WhatsApp), waste schedule."],
+      "|",
+      ["B2", "Marketplace", "Categories, community promo, listings grid, + Sell."],
+      { to: "Tap listing" },
+      ["B3", "Listing detail", "Seller is a verified resident. Pickup at guardhouse. Chat on WhatsApp."],
+      { to: "+ Sell", alt: true },
+      ["B4", "Create listing", "Photos, type, price, condition, visibility. Reviewed by management."],
+    ]},
+  { id: "visitors", n: 3, tint: "--mint-tint", title: "Visitors & SOS",
+    desc: "Residents pre-register a visitor and share a QR pass, which guards scan at the gate. SOS calls the guardhouse with live location.",
+    roles: ["Resident", "Owner", "Sub-tenant (if granted)"],
+    seq: [
+      ["C1", "Visitors", "Upcoming, today and history, linked to permits for contractors."],
+      { to: "+ Pre-register" },
+      ["C2", "Pre-register visitor", "Type, plate, time window, guest count, multiple-entry, note to guard."],
+      { to: "Generate QR" },
+      ["C3", "Visitor QR pass", "Ticket-style pass. Share via WhatsApp or save image. Cancel anytime."],
+      "|",
+      ["C4", "Emergency / SOS", "Hold-to-alert SOS, live location, taman and national emergency numbers."],
+    ]},
+  { id: "guard", n: 4, tint: "--yellow-tint", title: "Guard mode",
+    desc: "A security account signs in to the same app and lands in guard mode, which has its own tabs. The gate check takes three seconds: scan, read the verdict, admit or deny.",
+    roles: ["Security"], guard: true,
+    seq: [
+      ["C5", "Guard home", "Shift, live counts, scan card, arriving next, contractors on site."],
+      { to: "Scan" },
+      ["C6", "Scan pass", "QR / plate / code. Manual entry fallback and recent scans."],
+      { to: "Visitor QR" },
+      ["C7", "Visitor verdict", "Valid pass, host, plate match, time window, IC sighted, Admit / Deny."],
+      "|",
+      ["C8", "Contractor permit check", "Allowed hours, worker count with ID check, vehicle plates matched."],
+      { to: "Logged" },
+      ["C9", "Gate log", "Admitted, denied with reason, contractors, exit times. Export."],
+    ]},
+  { id: "permits", n: 5, tint: "--coral-tint", title: "Permits & vendor requests",
+    desc: "The full permit flow: pick a category, upload documents, pay the deposit and fee, track all 7 statuses, share the contractor pass, then request the inspection that releases the deposit refund.",
+    roles: ["Owner", "Resident", "Sub-tenant (if granted)"],
+    seq: [
+      ["D1", "Permits list", "Active, action needed, deposits held. Status chips per permit."],
+      { to: "+ New permit" },
+      ["D2", "Category", "Renovation, contractor entry, move-in/out, heavy vehicle, with fees and taman rules."],
+      { to: "Continue" },
+      ["D3", "Details & documents", "Scope, dates, hours, contractor SSM, workers, plates, required uploads."],
+      { to: "Continue to payment" },
+      ["D4", "Deposit & fee", "Refundable deposit + non-refundable fee. FPX, card or bank-transfer receipt."],
+      { to: "Paid" },
+      ["D5", "Status tracker", "Pending Review → Pending Deposit → Approved → Work In Progress → Inspection Scheduled → Completed → Deposit Refunded."],
+      { to: "Contractor pass" },
+      ["D6", "Contractor pass", "Shareable QR with hours, worker cap and plates for guardhouse checks."],
+      { to: "Job done", alt: true },
+      ["D7", "Inspection & refund", "Checklist, after-work photos, inspection slot, refund destination."],
+    ]},
+  { id: "billing", n: 6, tint: "--indigo-tint", title: "Billing & payments",
+    desc: "Invoices and balance across linked units, paid in-app with FPX. Receipts and reminders. A sub-tenant without pay access sees bills as view-only.",
+    roles: ["Owner", "Resident", "Sub-tenant"], sub: true,
+    seq: [
+      ["E1", "Bills", "Outstanding across units, due / overdue / paid, reminder switch."],
+      { to: "Tap invoice" },
+      ["E2", "Invoice & pay", "Line items, FPX bank picker, DuitNow, card, auto-pay."],
+      { to: "Pay now" },
+      ["E3", "Payment successful", "Receipt with FPX reference, download PDF, share."],
+      "|",
+      ["E4", "Receipts & reminders", "History by month, refunds, push / email / SMS reminders."],
+      "|",
+      ["E5", "Sub-tenant · view only", "Pay buttons locked, owner named, request pay access."],
+    ]},
+  { id: "facilities", n: 7, tint: "--mint-tint", title: "Facilities",
+    desc: "Browse bookable facilities, pick slots, and manage bookings, with a reminder before the booked time.",
+    roles: ["Resident", "Owner", "Sub-tenant (if granted)"],
+    seq: [
+      ["F1", "Book a facility", "Hall, courts, BBQ pit, futsal, with price, deposit and availability."],
+      { to: "Select slot" },
+      ["F2", "Pick slots", "Day strip, slot grid (available / selected / booked), rules, 1h reminder."],
+      { to: "Confirm" },
+      ["F3", "My bookings", "Confirmed, pending approval, cancelled + refund. Add to calendar."],
+    ]},
+  { id: "notifications", n: 8, tint: "--coral-tint", title: "Notifications",
+    desc: "Push notifications for visitor arrival, bills due, bookings, permit and deposit updates, and announcements, all collected in the in-app notification center.",
+    roles: ["All roles"],
+    seq: [
+      ["B6", "Push on lock screen", "Visitor arrived, bill due, booking reminder, permit update, announcement."],
+      { to: "Tap notification" },
+      ["B5", "Notification center", "Filter by type, unread dots, inline Pay now on permit approval."],
+    ]},
+  { id: "profile", n: 9, tint: "--indigo-tint", title: "Profile & settings",
+    desc: "Profile, EN / BM language, notification preferences, linked properties with roles, and help.",
+    roles: ["All roles"],
+    seq: [
+      ["G1", "Me", "Account, sub-tenants, payment methods, language, notifications, support."],
+      { to: "Properties & roles" },
+      ["G2", "Properties & roles", "Per-unit role chips and permissions, sub-tenant scopes, Manage access."],
+      "|",
+      ["G3", "Notification prefs", "Push / email / SMS per category, quiet hours, BM language."],
+      "|",
+      ["G4", "Help & support", "Search, chat / call / email management, FAQ, report an issue."],
+    ]},
+];
+
+const COVERAGE = [
+  ["Access & accounts", [
+    ["Sign in / register (all 5 roles)", "A1 A2 A3 A4"],
+    ["Multi-property switcher", "A5 H0"],
+    ["Role- and property-scoped permissions", "G2 E5 A7"],
+    ["Invite / accept sub-tenant with limited scopes", "A6 A7"]]],
+  ["Home & community", [
+    ["Taman home feed (announcements, alerts)", "H0"],
+    ["Directory of facilities & services", "B1"],
+    ["Marketplace browse & list", "B2 B3 B4"]]],
+  ["Visitors & security", [
+    ["Visitor pre-registration", "C1 C2"],
+    ["Generate / show visitor QR", "C3"],
+    ["Guard: scan, admit / deny, visitor log", "C5 C6 C7 C9"],
+    ["Guard: verify contractor permits", "C8"],
+    ["Emergency / SOS contacts", "C4"]]],
+  ["Permits & vendor requests", [
+    ["Permit applications by category", "D1 D2"],
+    ["Required document uploads", "D3"],
+    ["Deposit & fee payment", "D4"],
+    ["Status tracker (7 states)", "D5 D1"],
+    ["Digital contractor pass & entry QR", "D6"],
+    ["Completion & deposit refund request", "D7"]]],
+  ["Billing & payments", [
+    ["Invoices & balance for linked units", "E1"],
+    ["Pay bills in-app", "E2 E3"],
+    ["Receipt history & reminders", "E4"],
+    ["Sub-tenant: view only or pay if granted", "E5 A6"]]],
+  ["Facilities", [
+    ["Browse bookable facilities", "F1"],
+    ["Book slots, cancel, booking status", "F2 F3"],
+    ["Push reminders before booked time", "F2 F3 B6"]]],
+  ["Notifications", [
+    ["Push: visitors, bills, bookings, permits, announcements", "B6"],
+    ["In-app notification center", "B5"]]],
+  ["Profile & settings", [
+    ["Profile, language EN / BM, notification prefs", "G1 G3"],
+    ["Linked properties & roles", "G2"],
+    ["Support / help", "G4"]]],
+];
+
+const toc = document.getElementById("toc");
+const root = document.getElementById("flows");
+
+for (const f of FLOWS) {
+  toc.insertAdjacentHTML("beforeend", `<a href="#${f.id}">${f.n}. ${f.title}</a>`);
+  const roleCls = r => /Security/.test(r) ? "role guard" : /Sub-tenant/.test(r) ? "role sub" : "role";
+  let track = "";
+  for (const s of f.seq) {
+    if (s === "|") { track += `<div class="gap" aria-hidden="true"></div>`; continue; }
+    if (s.to) { track += `<div class="arrow${s.alt ? " alt" : ""}" aria-hidden="true">${ARROW}<span>${s.to}</span></div>`; continue; }
+    const [code, title, note] = s;
+    track += `<figure class="step" id="s-${code}-${f.id}" style="margin:0">
+      <div class="phone"><div class="screen" tabindex="0" aria-label="${title} screen, scrollable"><img src="screens/${code}.webp" alt="${title}" loading="lazy"></div><span class="scroll-hint">Scroll ↓</span></div>
+      <figcaption class="cap"><div class="code">${code}</div><h3>${title}</h3><p>${note}</p></figcaption>
+    </figure>`;
+  }
+  root.insertAdjacentHTML("beforeend", `<section class="flow" id="${f.id}">
+    <div class="flow-head"><div class="num" style="background:var(${f.tint});color:var(--indigo)">${f.n}</div>
+      <h2>${f.title}</h2><p>${f.desc}</p>
+      <div class="roles">${f.roles.map(r => `<span class="${roleCls(r)}">${r}</span>`).join("")}</div></div>
+    <div class="track">${track}</div></section>`);
+}
+
+toc.insertAdjacentHTML("beforeend", `<a href="#coverage">Feature coverage</a>`);
+root.insertAdjacentHTML("beforeend", `<section class="coverage" id="coverage">
+  <div class="flow-head"><div class="num" style="background:var(--indigo);color:#fff">✓</div>
+  <h2>Feature coverage</h2><p>Each mobile bullet from FEATRURES.md and the screens that cover it.</p></div>
+  <div class="cov-grid">${COVERAGE.map(([g, items]) => `<div class="cov"><h4>${g}</h4><ul>${items.map(([t, refs]) =>
+    `<li><span>${t}</span><span class="refs">${refs.split(" ").map(c => `<a href="#${firstId(c)}">${c}</a>`).join("")}</span></li>`).join("")}</ul></div>`).join("")}</div></section>`);
+
+function firstId(code) { const el = document.querySelector(`[id^="s-${code}-"]`); return el ? el.id : ""; }
+
+// Hide the scroll hint once a screen is scrolled or when it fits without scrolling.
+document.querySelectorAll(".screen").forEach(sc => {
+  const hint = sc.nextElementSibling, img = sc.querySelector("img");
+  const check = () => { if (sc.scrollHeight <= sc.clientHeight + 4) hint.style.opacity = 0; };
+  img.complete ? check() : img.addEventListener("load", check);
+  sc.addEventListener("scroll", () => { hint.style.opacity = 0; }, { once: true });
+});
+</script>
+</body>
+</html>

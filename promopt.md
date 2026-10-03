@@ -1,0 +1,1 @@
+use tasteskill and impeccable can you design a mobile app storybording which will cover all the features from @FEATRURES.md for mobile app only and please include the sign in screen too. the theme should follow the @logo.jpg and @LOGODESIGN.md and the style should follow @draft_1.jpeg  and @draft_2.png if figma is a better option you can use figma
