@@ -17,7 +17,7 @@ Design-only phase. Mobile storyboard produced in Google Stitch (user choice); Fi
 - **Residents and owners** of units in Malaysian tamans (landed housing estates / gated communities). Owners may hold multiple units across different tamans.
 - **Sub-tenants** with limited, owner-granted scopes (e.g. view bills only, or pay).
 - **Security guards** at the guardhouse: mobile-first, scanning visitor and contractor QR, admitting/denying, logging.
-- **Management staff** on the go (primary surface for them is the web dashboard, out of scope here).
+- **Management staff** of a management company. Their primary surface is the web dashboard (`admin/index.html`, responsive down to phone width); a company only ever sees and edits the tamans under its own management contract.
 
 Guards use the same app; a guard account lands in a dedicated guard mode after sign-in.
 
