@@ -26,7 +26,8 @@ Inter throughout. Display 28/34 700 (−0.02em) · Headline 22/28 600 · Title 1
 3. **Flat cards**: radius 20, no border, shadow `0 8px 24px rgba(61,43,107,.08)`, 16px padding.
 4. **Tinted tiles**: square icon tiles in the four tints with a duotone icon.
 5. **Pill buttons**: 52px full-width indigo primary; outline or tinted secondary; sticky bottom CTA bar.
-6. **Bottom nav**: floating white bar (radius 24) on the cream ground, never on a colored band. Raised 56px coral center button with a white icon and a label underneath (`QR Pass` / `Scan`). Tab labels are 11px muted; the active tab is indigo semibold. Resident: Home · Services · [QR Pass] · Bills · Me. Guard: Gate · Log · [Scan] · Permits · Me.
+6. **Bottom nav**: floating white bar (radius 24) on the cream ground, never on a colored band. Raised 56px coral center button with an indigo-deep (`#2A1D4D`) icon and a label underneath (`QR Pass` / `Scan`). Tab labels are 11px muted; the active tab is indigo semibold. Resident: Home · Services · [QR Pass] · Bills · Me. Guard: Gate · Log · [Scan] · Permits · Me.
+   - The centre icon is indigo-deep, not white: white on coral is about 2.8:1, below the 3:1 non-text minimum; indigo-deep on coral is about 5.4:1.
    - A screen's primary action sits above the nav with 16px clearance and never overlaps the center button. Use a full-width pill for flows and an indigo extended FAB bottom-right on list screens.
    - Overdue or error state lives in chips and tiles, never in a colored card border.
 7. **Passes** (visitor and contractor): white ticket on an indigo field with side notches and a dashed tear line. The contractor pass adds a yellow header strip.
@@ -42,7 +43,7 @@ Inter throughout. Display 28/34 700 (−0.02em) · Headline 22/28 600 · Title 1
 - The floating bottom bar is a brand choice. On Android it still needs Material 3 nav-bar behavior: 48dp targets, system Back, and edge-to-edge insets. Dark theme is not designed yet, although G1 shows a Dark mode toggle.
 
 ## Web admin console
-Recorded from the shipped build: `admin/index.html` (Tailwind v4 `@theme` plus a component `<style>` block), `admin/app.js`, `admin/pages.js`, `admin/pages2.js`, `admin/mobile.html`. Screenshots: `.impeccable/review/` (1440, 1024, 390). Same world as the mobile app (palette, Inter, chips, pill buttons, indigo band with an overlapping cream sheet), laid out as a desktop console.
+Recorded from the shipped build: `admin/index.html` (Tailwind v4 `@theme`), `admin/ui.css` (component styles, shared by admin and the guard console), `admin/helpers.js` (formatters, shared), `admin/app.js`, `admin/pages.js`, `admin/pages2.js`, `admin/mobile.html`. Screenshots: `.impeccable/review/` (1440, 1024, 390). Same world as the mobile app (palette, Inter, chips, pill buttons, indigo band with an overlapping cream sheet), laid out as a desktop console.
 
 ### Admin-only tokens
 | Token | Hex | Use |
@@ -105,3 +106,40 @@ State transitions only, 150–250ms: colours and strokes 150ms, switch and chevr
 - The logo mark is cropped from `logo.jpg` with background-position. Use the real SVG mark when it exists.
 - All data is synthetic, on a fixed demo clock (Sat 3 Oct 2026, 10:42).
 - Tailwind runs from the browser CDN build. That is prototype-only; production needs a compiled stylesheet.
+
+## Guard console
+Recorded from the shipped build: `security/index.html` (the shared `@theme`, then `admin/ui.css`, then a guard-only component `<style>` block), `security/guard.js`, `admin/helpers.js`, `admin/data.js`. Screenshots: `.impeccable/review/sec-*.png` (1440, 1280, 1024, 390). It uses the same world and tokens as the web admin, with no new colours, and is built for a guard standing at a booth: big cards, big words, and one obvious button.
+
+### Layout shell
+1. **Navigation**: Gate · Log · [Scan] · Permits · Me. From 1024px it is a 96px indigo rail. Rail items are 76px wide, at least 64px tall, radius 18, 12px/500 in lav, and the current item is a cream pill with indigo semibold text and a filled icon. Below 1024px it becomes the mobile floating bottom bar: white, radius 24, 70px tall, 12px from the edges plus the safe area, 11px muted labels, with the raised 56px coral Scan (indigo-deep icon, 5px white ring). The toast lifts to clear the bar.
+2. **Top bar**: indigo, 64px, sticky. It holds the station (gate · taman, 15px semibold), a live clock (20px semibold, tabular) with the day in lav, `Synced` with a live dot, the guard's avatar and name, and a tonal danger SOS button (bad-tint/bad-ink, 48px). The clock appears from 640px; sync and guard appear from 768px.
+3. **Cream sheet** with 28px top corners (top-right square beside the rail), max 1280px, with 96px+ bottom padding on phones so content clears the bar.
+4. **Sign-in**: an indigo half with the lockup and a `Guard` dark chip, and a cream half holding a guard picker (white radius-20 cards) and then a PIN keypad. The halves sit side by side 5:7 from 1024px and stack below that.
+
+### Verdict sheet
+The core of the console: every pass, permit or walk-in resolves to one full-colour answer.
+- **Band tones**: ok-ink green with white text (Admit / Valid), bad-ink red with white text (Do not admit, Refuse entry, stop-work), sun amber with ink text (Check with host), and indigo with white text for neutral flows (walk-in, delivery, scan, SOS, incident, end shift).
+- **Band type**: title 700, −0.02em, 28/36 on phones and 34/40 from 640px. Filled icon 44px on phones and 52px from 640px. Close button 48px, inheriting the band's text colour.
+- **Verdict wipe**: the band's colour wipes in from the left (`clip-path` inset, 340ms, `--ease`) only on the sheet's first open. Re-renders inside an open sheet never replay it. This is the console's one authored motion; everything else is state transitions. The scan viewfinder's coral scanline stops under reduced motion.
+- **Footer**: white with a hairline. One dominant 56px action (`btn-xl`, 16px) with a 56px outline secondary beside it. Admit is a solid ok-ink button (hover `#186543`). The primary takes autofocus.
+- **Gating**: when a valid pass has a plate, Admit stays disabled until the guard answers the plate check (Plate matches / On foot / Different car; a different car also needs the host's yes). Refuse turns the band red and preselects the reason the verdict already knows. `Host said no` is preselected the same way.
+- **Shape**: below 640px it is a bottom sheet (full width, 94dvh max, 28px top corners, slides up). From 640px it is a centred 640px dialog, radius 28, over an ink/55% backdrop.
+- **Sheet body** stacks as a block with vertical spacing (`space-y-5`; padding 20/24, 18/16 on phones) and scrolls. Never lay it out as a height-capped grid: rows collapse under overflow hidden.
+
+### Components
+- **Choice**: a white tile with an edge inset stroke, radius 16, at least 60px tall, 13.5px/600, with a 22px icon over the label. When selected it turns indigo-tint with indigo text and a 2px indigo inset stroke. The `row` variant is a 48px pill. Choices are used for the plate check, purpose, host answer and refusal reasons.
+- **Stepper**: a 48px white circle with an edge stroke and an indigo glyph, at 35% opacity when disabled. A 26px tabular count sits between the − and + buttons.
+- **PIN keypad**: 64px keys, radius 18, white with an edge stroke, 26px/600 tabular, flashing indigo-tint on press. A 3-column grid (max 320px) sits under four 16px dots, which fill indigo.
+- **Arrival rows**: the whole row is one button. It shows the time (tabular) and how long ago, the name, and the type · unit. Phones end the row with a muted chevron; from 640px it ends with a 48px tonal `Check` pill.
+- **Unit names** never break inside the street part: the parcel list breaks only after the comma (`un()` in guard.js). Arrival rows keep the whole unit name together.
+- **Targets**: every interactive element is at least 48px, including the row buttons, emergency links (`min-h-12`), check-out and permit buttons (`h-12`), the sheet close button and SOS.
+- **Lookup field**: a 56px search input (17px) handles pass code, plate and name, so there is no separate Enter-code button.
+
+### Rendering rule
+Host panels repaint only when their HTML string changes. In the walk-in sheet, the host-request block and the footer go through `paint()`, which compares the new HTML against `data-h` before writing `innerHTML`. A redraw therefore never replaces a button between pointer-down and click, so taps are not swallowed.
+
+### Known gaps
+- Camera scanning is simulated (viewfinder with a scanline; no camera access).
+- Resident in-app approval is simulated (timed reply).
+- No BM language toggle and no night theme, although guards work night shifts.
+- The password gate (`gate.js`) is a client-side deterrent only, not authentication.

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tamanly Design Preview</title>
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<script src="gate.js"></script>
+<link rel="icon" href="logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --indigo: #3D2B6B; --indigo-tint: #ECE9F3; --coral-ink: #A23F31; --cream: #F7F3EC; --ink: #1F1A2E; --muted: #6E6880; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--cream); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  header { position: relative; background: var(--indigo); color: #fff; padding: 28px 20px 88px; }
+  header::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 48px; background: var(--cream); border-radius: 32px 32px 0 0; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+  /* ponytail: crops the mark out of logo.jpg; swap for the real SVG mark when it exists */
+  .mark { width: 48px; height: 48px; border-radius: 15px; background: #FBF7EF url(logo.jpg) -5px -16px / 152px auto no-repeat; }
+  h1 { margin: 28px 0 8px; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; letter-spacing: -0.03em; }
+  header p { margin: 0; max-width: 56ch; color: #C9C1E0; font-size: 16px; line-height: 1.55; }
+  main { padding: 0 20px 64px; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  a.card { display: block; height: 100%; padding: 22px; border-radius: 20px; background: #fff; color: inherit; text-decoration: none; box-shadow: 0 8px 24px rgba(61, 43, 107, .07), 0 1px 2px rgba(61, 43, 107, .05); transition: box-shadow .15s; }
+  a.card:hover { box-shadow: 0 12px 32px rgba(61, 43, 107, .14); }
+  a.card:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; }
+  h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+  .card p { margin: 6px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--muted); }
+  .card span { display: inline-block; margin-top: 14px; font-size: 14px; font-weight: 600; color: var(--indigo); }
+  footer { max-width: 880px; margin: 32px auto 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="brand"><span class="mark" role="img" aria-label="Tamanly logo"></span>Tamanly</div>
+  <h1>Design preview</h1>
+  <p>Every surface of the Tamanly product, built as clickable prototypes with synthetic data.</p>
+</div></header>
+<main><div class="wrap">
+  <ul>
+    <li><a class="card" href="storyboard/"><h2>Mobile app storyboard</h2><p>42 screens for residents, owners, sub-tenants and guards, laid out as user flows.</p><span>Open storyboard →</span></a></li>
+    <li><a class="card" href="admin/"><h2>Management dashboard</h2><p>The web console for management companies: permits, billing, visitors, facilities and more.</p><span>Open dashboard →</span></a></li>
+    <li><a class="card" href="security/"><h2>Guard console</h2><p>The guardhouse view: check passes, admit or refuse, register walk-ins, call owners.</p><span>Open guard console →</span></a></li>
+    <li><a class="card" href="admin/mobile.html"><h2>Dashboard on a phone</h2><p>Each dashboard section at phone width, rendered live from the responsive build.</p><span>See phone drafts →</span></a></li>
+  </ul>
+  <footer>All names, amounts and tamans are synthetic. This preview is private and not meant for search engines.</footer>
+</div></main>
+</body>
+</html>
