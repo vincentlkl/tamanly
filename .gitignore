@@ -1,0 +1,6 @@
+.DS_Store
+.playwright-mcp/
+.stitch-project.json
+# Scratch screenshots from design reviews; they stay on disk but not in the repo
+.impeccable/review/
+.impeccable/hook.cache.json
