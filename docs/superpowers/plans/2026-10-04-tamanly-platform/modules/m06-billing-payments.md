@@ -4,7 +4,8 @@
 
 **Goal:** Money flows that are never ambiguous:
 - Management creates, schedules and bulk-imports invoices.
-- Residents pay in the app through Billplz (FPX, card or e-wallet, picked on the Billplz page) or by uploading a bank-transfer slip. Gateway fees are absorbed: residents pay exactly the amount on the bill.
+- Residents pay in the app through Billplz (FPX, card or e-wallet, picked on the Billplz page) or by uploading a bank-transfer slip. Residents pay exactly the amount on the bill.
+- The money goes straight into the customer's own Billplz account for that taman (a payout account). Tamanly never holds it.
 - Staff reconcile anything that doesn't match automatically.
 - Reminders and late fees run on their own.
 - Deposits held for permits and bookings sit in an escrow ledger that can't go negative.
@@ -106,6 +107,7 @@ Constraints and indexes:
 |---|---|
 | `reference` | |
 | `organization_id`, `taman_id`, `payer_id` | |
+| `payout_route_id` | Where the money goes: the payout account and its Billplz collection |
 | `method` | `online` (Billplz) / `bank_transfer` / `cash` / `cheque` |
 | `channel` | What Billplz reports the payer used, e.g. `FPX`; blank for other methods |
 | `amount_cents` | |
@@ -159,7 +161,38 @@ Receipts carry an attached `pdf`.
 | `late_fee_cap_cents` | |
 | `late_fee_categories` | `text[]` |
 | `reminders` | jsonb `[{ offset_days, push, email }]` |
-| `bank_name`, `bank_account_name`, `bank_account_no` | For transfer instructions |
+
+Bank details for manual transfers come from the taman's payout account, not from here.
+
+**`payout_accounts`**: the customer's own Billplz accounts (ADR-011a). One row per Billplz account, so one per bank account.
+
+| Column | Notes |
+|---|---|
+| `organization_id` | |
+| `label` | e.g. "Damai Jaya MC · sinking fund" |
+| `provider` | `billplz`, or `fake` in development and test |
+| `credentials` | Encrypted JSON: `api_key` and `x_signature_key` |
+| `sandbox` | Boolean |
+| `bank_name`, `bank_account_name`, `bank_account_no` | Shown to residents for manual transfers |
+| `status` | `connected` / `error` / `disconnected` |
+| `last_checked_at` | |
+| `last_error` | |
+
+**`payout_routes`**: which account a taman's money goes to, from when.
+
+| Column | Notes |
+|---|---|
+| `taman_id`, `payout_account_id` | |
+| `purpose` | `default` / `sinking_fund` / `deposits` |
+| `collection_id` | The Billplz collection created for this route inside the account |
+| `starts_on`, `ends_on` | `ends_on` is null while the route is current |
+
+The routes table has a constraint so a taman can never have two live routes for the same purpose:
+
+```sql
+ALTER TABLE payout_routes ADD CONSTRAINT payout_routes_no_overlap
+  EXCLUDE USING gist (taman_id WITH =, purpose WITH =, daterange(starts_on, ends_on, '[)') WITH &&);
+```
 
 **`escrow_entries`**: append-only.
 
@@ -171,7 +204,8 @@ Receipts carry an attached `pdf`.
 | `amount_cents` | Positive for `collected`, negative otherwise |
 | `payment_id` | |
 | `reason` | |
-| `payout_ref`, `payout_account` | |
+| `payout_ref` | IBG or DuitNow reference of a refund |
+| `paid_to` | Masked account the refund went to, e.g. "Maybank ••• 4410" |
 | `recorded_by_id` | |
 | `created_at` | |
 
@@ -198,10 +232,13 @@ Invoices::Bulk.parse(text_or_csv, taman_ids:) # => Invoices::Bulk::Result(rows: 
 Invoices::Bulk.create!(result, by:)          # => InvoiceBatch
 Escrow.collect!(source, amount_cents:, payment:)
 Escrow.deduct!(source, amount_cents:, reason:)        # raises Escrow::Insufficient
-Escrow.refund!(source, amount_cents:, payout_ref:, payout_account:)
+Escrow.refund!(source, amount_cents:, payout_ref:, paid_to:)
 Escrow.forfeit!(source, reason:)                      # takes the whole remaining balance
 Escrow.balance(source)                                 # => Integer cents
 Billing.balance_for(unit)                              # => { due_cents:, overdue_cents:, next_due_on: }
+PayoutRoute.for(taman, purpose: :default, on: Date.current) # => PayoutRoute; falls back to :default; raises Payments::NotSetUp
+PayoutRoutes::Open.call(taman:, payout_account:, purpose:, starts_on:)   # creates the Billplz collection, then the route
+PayoutAccount#gateway                                  # => Payments::Gateway.for(self)
 ```
 
 **Consumes:**
@@ -223,7 +260,7 @@ All require `X-Unit-Id` and scopes as noted.
 | GET | `/api/v1/payments/:id` | payer | E3. Poll after returning from the gateway |
 | GET | `/api/v1/receipts` | `bills_view` | E4 |
 | GET | `/api/v1/receipts/:id/pdf` | `bills_view` | E4 |
-| GET | `/api/v1/billing/transfer_instructions` | `bills_pay` | Bank details for a manual transfer |
+| GET | `/api/v1/billing/transfer_instructions?purpose=default\|sinking_fund` | `bills_pay` | Bank details of the payout account for a manual transfer |
 
 `POST /api/v1/payments` takes:
 
@@ -234,7 +271,8 @@ All require `X-Unit-Id` and scopes as noted.
 For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `receipt_slip` file.
 
 **Webhooks:**
-- `POST /webhooks/payments/:provider` checks the signature and is never throttled. Billplz posts its callback to `/webhooks/payments/billplz`.
+- `POST /webhooks/payments/billplz/:payout_account_id` receives Billplz callbacks. It checks the signature with that account's X Signature Key and is never throttled. All customers share this one address; the account id in the path tells them apart.
+- `POST /webhooks/payments/fake/:payout_account_id` is the same for the Fake gateway in development and test.
 - `GET /payments/:id/return` is the gateway return page. It deep-links back to `tamanly://payments/<id>`.
 
 ## Tasks
@@ -279,6 +317,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   - It fires `invoice.issued` to unit recipients with `bills_view`, unless `notify: false`.
   - It audits `invoice.created`.
   - A zero or negative amount is invalid.
+  - A `maintenance_sinking` invoice for a taman that has a `sinking_fund` payout route is invalid: "This taman pays its sinking fund into a separate account. Issue maintenance and sinking fund as separate invoices." The Strata Management Act 2013 requires the two funds in separate accounts, so the money can't arrive as one payment.
 
 - [ ] **Step 3: Write failing service specs for `Void`.**
   - Voiding needs a reason.
@@ -311,7 +350,9 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   - `Invoice` includes `Payable`:
     - `amount_due_cents = amount_cents - paid_cents`;
     - `apply_payment!(alloc)` increments `paid_cents` under `lock!`.
+    - `payout_purpose` is `:sinking_fund` for `sinking_fund` invoices and `:default` otherwise (contracts §6).
   - Seed by porting `INVOICES` from `admin/data.js`: Sep and Oct maintenance for every unit, plus extras, with the same status mix.
+  - Damai Jaya is strata, so its invoices are issued as two: `maintenance` for the unit fee, and `sinking_fund` for 10% of it.
 
 - [ ] **Step 8: Run the specs.** Expected: PASS.
 
@@ -341,6 +382,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   - A paused schedule doesn't run.
   - Quarterly and yearly schedules advance correctly.
   - Vacant units are included. Owners still pay maintenance.
+  - A `maintenance_sinking` schedule can't be saved for a taman with a `sinking_fund` route, for the same reason as T06.1. Seed Damai Jaya with two schedules, maintenance and sinking fund.
   - The job sends one `invoice.issued` per unit. Notifications go out in batches of 500 via `perform_all_later`.
   - The admin "Run now" button needs `billing: full` and audits `schedule.run`.
 
@@ -400,12 +442,15 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
 
 ### T06.4 · Payment gateway, checkout and webhooks (Review Focus 2)
 
-**Gateway:** Billplz (ADR-011a). Build and test against `Payments::Gateways::Fake` first, then add `Payments::Gateways::Billplz` in Step 8. Use a Billplz sandbox account (`www.billplz-sandbox.com`) for staging.
+**Gateway:** Billplz, using each customer's own Billplz accounts (ADR-011a). Build and test against `Payments::Gateways::Fake` first, then add `Payments::Gateways::Billplz` in Step 8. Staging uses Billplz sandbox accounts (`www.billplz-sandbox.com`).
+
+This task creates `payout_accounts` and `payout_routes`, so payments can be routed before the Settings page for them ships in M13 T13.2. Until then, staging accounts are added from the Rails console with `PayoutAccount.create!` and `PayoutRoutes::Open.call`.
 
 **Files:**
 - Create:
-  - migrations for `payments`, `payment_allocations`, `payment_events`
-  - `app/models/{payment,payment_allocation,payment_event}.rb`
+  - migrations for `payout_accounts`, `payout_routes`, `payments`, `payment_allocations`, `payment_events`
+  - `app/models/{payout_account,payout_route,payment,payment_allocation,payment_event}.rb`
+  - `app/services/payout_routes/open.rb`
   - `app/services/payments/{checkout,settle,gateway}.rb`
   - `app/services/payments/gateways/{fake,billplz}.rb`
   - `app/jobs/payments/poll_pending_job.rb`
@@ -413,6 +458,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   - `app/controllers/payments/returns_controller.rb`
   - `app/controllers/api/v1/payments_controller.rb`
 - Test:
+  - `spec/models/payout_route_spec.rb`
   - `spec/services/payments/checkout_spec.rb`
   - `spec/services/payments/settle_spec.rb`
   - `spec/requests/webhooks/payments_spec.rb`
@@ -420,13 +466,22 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   - `spec/services/payments/gateways/billplz_spec.rb`
   - `spec/jobs/payments/poll_pending_job_spec.rb`
 
-- [ ] **Step 1: Write failing checkout specs.**
+- [ ] **Step 1: Write failing routing and checkout specs.**
+  - **Routing**
+    - `PayoutRoute.for(taman)` returns the route live today.
+    - `purpose: :sinking_fund` or `:deposits` falls back to `:default` when the taman has no route for it.
+    - A route that ended yesterday isn't returned. A taman with no route raises `Payments::NotSetUp`.
+    - Two overlapping routes for one taman and purpose are rejected by the database constraint.
+    - `PayoutRoutes::Open` calls `gateway.create_collection("Taman Desa Harmoni")` (Billplz: `POST /api/v3/collections` with `title`) and stores the returned id on the route.
   - Checkout for two open invoices of one unit creates one `pending` payment with two allocations. The amount equals the sum of `amount_due_cents`. It returns the gateway `redirect_url`.
   - Paying an invoice of a unit the user doesn't occupy raises `ActiveRecord::RecordNotFound`.
   - A sub-tenant without `bills_pay` gets 403 `scope_missing`.
   - A paid or void invoice can't be paid. The error is 409 "This bill is already paid."
   - An invoice with a `pending` payment created within the last 15 minutes gets 409 "A payment for this bill is already in progress. Check again in a few minutes."
-  - Payables from two different tamans in one checkout give 422. Each taman settles to its own account.
+  - Every payment records its `payout_route`. A sinking-fund invoice uses the taman's sinking-fund route.
+  - Payables from two tamans, or routed to two different payout accounts (a strata unit's maintenance and sinking fund), give 422 `mixed_payout_accounts`: "These bills go to different accounts. Pay them one group at a time."
+  - A taman without a payout route gives 422 `payout_not_set_up`: "Online payment isn't set up for this taman yet. Contact your management office."
+  - The amount sent to the gateway equals the sum of the dues. No fee is ever added.
 
 - [ ] **Step 2: Write failing settle and webhook specs.** This covers Review Focus 2.
 
@@ -516,9 +571,9 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   ```
 
 - [ ] **Step 6: Implement the webhook controller.**
-  1. Call `gateway.verify_webhook!(request)`. When it returns `nil` (an update Billplz sends that isn't a payment result), answer 200 and stop.
+  1. Load the payout account from the path, then call `account.gateway.verify_webhook!(request)`, so the signature is checked with that customer's X Signature Key. When it returns `nil` (an update Billplz sends that isn't a payment result), answer 200 and stop.
   2. Run `PaymentEvent.create_or_find_by!(provider:, provider_event_id: event.event_id)`, and return 200 immediately if `processed_at` is set.
-  3. Find the payment by `provider_ref` and call `Settle`.
+  3. Find the payment by `provider_ref` **within that payout account's routes** and call `Settle`. A bill id that belongs to a different account is treated as unknown, so one customer's keys can never settle another customer's payment.
   4. Set `processed_at`.
   5. Return 200.
 
@@ -532,11 +587,11 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   - **`create_checkout(payment)`:**
     - It POSTs to `<host>/api/v3/bills` with Basic auth (API secret key as username).
     - The form carries:
-      - `collection_id`: the taman's collection;
+      - `collection_id`: the payment's route collection;
       - `email` (or `mobile` in `60XXXXXXXXX` form when there is no email);
       - `name`, `description` (≤ 200 chars);
       - `amount`: exactly `payment.amount_cents`, with no fee added (ADR-011a);
-      - `callback_url`: `/webhooks/payments/billplz`;
+      - `callback_url`: `/webhooks/payments/billplz/<payout_account_id>`;
       - `redirect_url`: `/payments/:id/return`;
       - `reference_1_label: "Payment"` and `reference_1: payment.reference`.
     - It returns `{ provider_ref: <bill id>, redirect_url: <bill url> }`.
@@ -548,8 +603,9 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
     - A wrong signature raises `Payments::InvalidSignature`.
     - A callback with `paid == "false"` and `transaction_status == "failed"` returns `:failed`. Any other unpaid callback returns `nil`, which the controller answers with 200 and ignores.
     - Use the worked X Signature example from Billplz's API reference as a fixed test vector, so the spec doesn't just repeat the implementation.
-  - **Errors:** a Billplz 5xx or timeout on create raises `Payments::ProviderError`. The API maps it to 502 `payment_provider_error` with "The payment service didn't respond. Try again in a minute."
-  - **`PollPendingJob`:** runs every 5 minutes for online payments still `pending` after 10 minutes.
+  - **`create_collection(title)`** POSTs to `/collections` and returns the new collection id.
+  - **Errors:** a Billplz 401 marks the payout account `error` with "Billplz rejected the API key" and fires `payout_account.error`. A Billplz 5xx or timeout on create raises `Payments::ProviderError`. The API maps it to 502 `payment_provider_error` with "The payment service didn't respond. Try again in a minute."
+  - **`PollPendingJob`:** runs every 5 minutes for online payments still `pending` after 10 minutes, using each payment's own payout account.
     - It calls `GET /bills/:id`. A paid bill settles through `Settle` with the same `event_id` as the callback would use, so a late callback is a no-op.
     - Payments pending for 24 hours become `failed` with "Payment not completed". The job deletes the Billplz bill (`DELETE /bills/:id`) so it can't be paid afterwards.
   - **Channel:** after settling, `GET /bills/:id/transactions` fills `payments.channel` from the transaction's reported payment channel. A failure there leaves `channel` blank and never fails the payment.
@@ -562,19 +618,30 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
       class Billplz
         HOSTS = { live: "https://www.billplz.com/api/v3", sandbox: "https://www.billplz-sandbox.com/api/v3" }.freeze
 
-        def initialize(api_key:, x_signature_key:, collection_ids:, sandbox: false)
-          @api_key, @x_key, @collections = api_key, x_signature_key, collection_ids
-          @host = HOSTS.fetch(sandbox ? :sandbox : :live)
+        def initialize(account)
+          @account = account
+          @api_key = account.credentials.fetch("api_key")
+          @x_key = account.credentials.fetch("x_signature_key")
+          @host = HOSTS.fetch(account.sandbox? ? :sandbox : :live)
         end
+
+        def create_collection(title) = request(:post, "/collections", { title: }).fetch("id")
 
         def create_checkout(payment)
           payer = payment.payer
-          form = { collection_id: @collections.fetch(payment.taman_id), name: payer.name.presence || "Resident",
-                   amount: payment.amount_cents, description: payment.allocations.map { _1.payable.payable_label }.join(", ").truncate(200),
-                   callback_url: Rails.application.routes.url_helpers.webhooks_payment_url("billplz"),
-                   redirect_url: Rails.application.routes.url_helpers.payment_return_url(payment),
-                   reference_1_label: "Payment", reference_1: payment.reference }
-          payer.email.present? ? form[:email] = payer.email : form[:mobile] = payer.phone.delete_prefix("+")
+          create_bill(collection_id: payment.payout_route.collection_id, name: payer.name.presence || "Resident",
+                      email: payer.email, mobile: payer.phone, amount_cents: payment.amount_cents,
+                      description: payment.allocations.map { _1.payable.payable_label }.join(", "),
+                      reference: payment.reference,
+                      redirect_url: Rails.application.routes.url_helpers.payment_return_url(payment))
+        end
+
+        # Also used by M15 for Tamanly's own invoices to customers
+        def create_bill(collection_id:, name:, email:, mobile:, amount_cents:, description:, reference:, redirect_url:)
+          form = { collection_id:, name:, amount: amount_cents, description: description.truncate(200),
+                   callback_url: @account.callback_url, redirect_url:,
+                   reference_1_label: "Payment", reference_1: reference }
+          email.present? ? form[:email] = email : form[:mobile] = mobile.to_s.delete_prefix("+")
           bill = request(:post, "/bills", form)
           { provider_ref: bill.fetch("id"), redirect_url: bill.fetch("url") }
         end
@@ -608,6 +675,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
           req.basic_auth(@api_key, "")
           req.set_form_data(form) if form
           res = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 10) { _1.request(req) }
+          raise Unauthorized, "Billplz rejected the API key" if res.code == "401"
           raise ProviderError, "Billplz #{res.code}" unless res.is_a?(Net::HTTPSuccess)
           res.body.present? ? JSON.parse(res.body) : {}
         rescue Net::OpenTimeout, Net::ReadTimeout, SocketError => e
@@ -618,7 +686,15 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   end
   ```
 
-  `Payments::Gateway.for(organization)` returns this adapter, built from the organisation's Billplz integration (M13 T13.2). Until M13 lands, it reads `Rails.application.credentials.billplz` (`api_key`, `x_signature_key`, `collection_ids`, `sandbox`). Schedule `PollPendingJob` in `config/recurring.yml`.
+  - `Payments::Gateway.for(account)` returns `Gateways::Billplz.new(account)` or `Gateways::Fake.new(account)` from `account.provider`.
+  - The adapter only needs an account object that answers `credentials`, `sandbox?` and `callback_url`. `PayoutAccount#callback_url` is `billplz_webhook_url(self)`. M15 passes Tamanly's own account the same way.
+  - `Payments::Unauthorized` is caught in one place (`PayoutAccount#gateway` wrapper), which marks the account `error` and notifies.
+  - Schedule `PollPendingJob` in `config/recurring.yml`.
+  - Seed four payout accounts with the `fake` provider, after `REFUND_ACCOUNTS` in `admin/data.js`:
+    - "Lestari FM client account · Maybank ••• 2210" (default for Bukit Indah and Melati Permai);
+    - "Desa Harmoni JMB · CIMB ••• 8841" (default for Desa Harmoni);
+    - "Damai Jaya MC · Public Bank ••• 3307" (default for Damai Jaya);
+    - "Damai Jaya MC sinking fund · Public Bank ••• 3315" (Damai Jaya's sinking-fund route).
 
 - [ ] **Step 10: Run the specs.** Expected: PASS.
 
@@ -661,7 +737,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
     - Audits `payment.recorded`.
   - **Reconciliation page** (`admin/#/reconciliation`):
     - Tabs: Unmatched, Receipt to verify, Matched, Failed, All.
-    - Filters: taman, method (online, bank transfer, cash, cheque), channel, date.
+    - Filters: taman, payout account, method (online, bank transfer, cash, cheque), channel, date.
     - Search: reference, payer, provider ref.
     - The drawer shows the slip image or PDF inline.
     - Counts in the sidebar come from the registry.
@@ -693,6 +769,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
 - [ ] **Step 1: Write failing specs.**
   - **`GET /invoices`** lists the current unit's invoices, open first, then paid. Each item has:
     - `reference`, `description`, `amount`, `paid`, `due`;
+    - `pay_group { id, label }`: the payout account the bill is paid into. The app pays one group at a time, so a strata unit sees "Maintenance" and "Sinking fund" as two Pay buttons;
     - `status` (computed);
     - `due_on`, `period`.
   - **`GET /invoices/:id`** includes:
@@ -707,7 +784,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
     - Listed newest first.
     - The PDF has the receipt number, the payment reference, the method, each invoice paid and the total.
     - Another unit's receipt returns 404.
-  - **Transfer instructions** return the taman's bank details from `billing_settings`.
+  - **Transfer instructions** return the bank details of the taman's payout account for the requested purpose (`default` or `sinking_fund`), with the payment reference to quote.
 
 - [ ] **Step 2: Run them.** Expected: FAIL.
 
@@ -806,10 +883,10 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
       end
     end
 
-    def refund!(source, amount_cents:, payout_ref:, payout_account:)
+    def refund!(source, amount_cents:, payout_ref:, paid_to:)
       source.with_lock do
         raise Insufficient, I18n.t("escrow.insufficient", held: Money.format(balance(source))) if amount_cents > balance(source)
-        entry!(source, "refund", -amount_cents, payout_ref:, payout_account:)
+        entry!(source, "refund", -amount_cents, payout_ref:, paid_to:)
       end
     end
 

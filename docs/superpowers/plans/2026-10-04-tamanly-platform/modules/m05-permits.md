@@ -85,11 +85,10 @@
 
 | Table | Columns |
 |---|---|
-| `permit_types` | `organization_id`, `key` (`renovation`/`contractor_entry`/`move`/`heavy_vehicle`/custom), `name_en`, `name_ms`, `icon`, `deposit_landed_cents`, `deposit_strata_cents`, `fee_cents`, `max_days`, `max_workers`, `needs_inspection`, `max_tonnes`, `refund_account_id`, `active` |
+| `permit_types` | `organization_id`, `key` (`renovation`/`contractor_entry`/`move`/`heavy_vehicle`/custom), `name_en`, `name_ms`, `icon`, `deposit_landed_cents`, `deposit_strata_cents`, `fee_cents`, `max_days`, `max_workers`, `needs_inspection`, `max_tonnes`, `active` |
 | `permit_type_documents` | `permit_type_id`, `name_en`, `name_ms`, `required`, `position` |
 | `work_hours` | One per taman: `weekday_from`, `weekday_to`, `saturday_from`, `saturday_to`, `sunday_allowed` (bool), `public_holidays_allowed` (bool), `quiet_rules` (text, e.g. "No hacking or drilling on Saturdays") |
 | `public_holidays` | `on_date`, `name`, `state` (null means national) |
-| `refund_accounts` | `organization_id`, `label`, `bank_name`, `account_name`, `account_no_last4` |
 | `contractors` | `organization_id`, `name`, `ssm_no`, `phone`, `email` (deduplicated on `[organization_id, ssm_no]`) |
 | `permits` | See below |
 | `permit_documents` | `permit_id`, `permit_type_document_id` (nullable for extras), `state` (`needs_review`/`verified`/`resubmit`), `note`, `reviewed_by_id`; `file` attached |
@@ -100,7 +99,7 @@
 | `permit_notices` | `reference`, `permit_id`, `taman_id`, `kind` (`violation_notice`/`stop_work`), `reason`, `status` (`active`/`acknowledged`/`lifted`), `issued_by_id`, `acknowledged_at`, `lifted_at`, `lifted_by_id` |
 | `blacklist_entries` | `organization_id`, `taman_id` (null means portfolio-wide), `kind` (`company`/`person`/`vehicle`), `name`, `ssm_no`, `id_last4`, `plate`, `reason`, `expires_on`, `added_by_id`, `lifted_at` |
 | `inspections` | `permit_id`, `stage` (`pre`/`post`), `scheduled_at`, `inspector_id`, `checklist` (jsonb `[{ item, ok, note }]`), `result` (`pass`/`issues`), `notes`, `done_at`; `photos` attached |
-| `refund_decisions` | `permit_id` (unique), `outcome` (`full`/`partial`/`forfeit`), `deductions` (jsonb `[{ item, amount_cents }]`), `refund_cents`, `decided_by_id`, `payout_ref`, `payout_account`, `paid_at` |
+| `refund_decisions` | `permit_id` (unique), `outcome` (`full`/`partial`/`forfeit`), `deductions` (jsonb `[{ item, amount_cents }]`), `refund_cents`, `decided_by_id`, `payout_ref`, `paid_to` (masked applicant account), `paid_at` |
 
 `permits` columns:
 - `reference`
@@ -135,7 +134,8 @@ Permits::GateRule.call(raw, station:, at:)                    # registered with 
 Permits::OnSite.for(organization, taman_ids:)                 # => Array<OnSiteRow(permit, workers_in, since, last_event)>
 Permits::Notices.issue!(permit, kind:, reason:, by:) / .lift!(notice, by:)
 Blacklist.match(contractor: nil, id_last4: nil, plate: nil, taman:)   # => BlacklistEntry | nil
-Permits::Refund.decide!(permit, outcome:, deductions:, by:) / .pay!(permit, payout_ref:, payout_account:, by:)
+Permits::Refund.decide!(permit, outcome:, deductions:, by:) / .pay!(permit, payout_ref:, by:)
+PermitCharge#payout_purpose   # => :deposits, so the deposit and fee are paid together into the taman's deposits account (falls back to :default)
 PermitCharge  # Payable
 ```
 
@@ -182,11 +182,11 @@ Public: `/p/:token` also renders contractor passes (contractor name, taman, allo
 
 ## Tasks
 
-### T05.1 · Permit types, document checklists, work hours and refund accounts
+### T05.1 · Permit types, document checklists, work hours and the deposits account
 
 **Files:**
 - Create:
-  - migrations and models for `permit_types`, `permit_type_documents`, `work_hours`, `public_holidays` and `refund_accounts`
+  - migrations and models for `permit_types`, `permit_type_documents`, `work_hours` and `public_holidays`
   - `app/controllers/admin/permit_types_controller.rb`
   - views
   - `db/seeds/05_permits.rb` (types part)
@@ -209,17 +209,18 @@ Public: `/p/:token` also renders contractor passes (contractor name, taman, allo
 
   - `WorkHours#describe` returns "Weekdays 09:00–18:00 · Saturday 09:00–13:00 · No work on Sundays and public holidays".
   - On the admin page (`admin/#/permit-types`):
-    - One card per type, editing deposit (landed/strata), fee, max days, max workers, needs inspection, max tonnes and refund account.
+    - One card per type, editing deposit (landed/strata), fee, max days, max workers, needs inspection and max tonnes.
     - A document checklist editor with required/optional, reorder, and EN/BM names.
     - A work hours editor per taman.
-    - Refund accounts CRUD (bank details are shown masked).
+    - "Bank account for refunds" (FEATRURES.md) is shown per taman: the payout account behind its `deposits` route, masked, with a link to Settings → Payout accounts (M13). Deposits are paid into that account and refunds are paid from it. With no `deposits` route, the taman's default account is used.
     - Needs `permit_review: full`.
     - Audited as `permit_type.updated` and `work_hours.updated`.
 
 - [ ] **Step 2: Run them.** Expected: FAIL.
 
 - [ ] **Step 3: Implement the models, page and seeds.**
-  - Seed from `PERMIT_TYPES`, `WORK_HOURS` and `REFUND_ACCOUNTS`.
+  - Seed from `PERMIT_TYPES` and `WORK_HOURS`.
+  - Open a `deposits` payout route for every taman to the "Lestari FM client account" (M06 seed), with `PayoutRoutes::Open`. In the prototype every permit type collects into that account (`REFUND_ACCOUNTS[0]`).
   - Seed the 2026 and 2027 Malaysian national public holidays plus the Selangor and Kuala Lumpur state holidays into `public_holidays`.
 
 - [ ] **Step 4: Run the specs.** Expected: PASS.
@@ -544,7 +545,8 @@ Public: `/p/:token` also renders contractor passes (contractor name, taman, allo
     - The applicant gets `permit.status_changed`, which carries the deduction lines.
     - The decision is audited as `permit.refund_decided`.
   - **`Refund.pay!`:**
-    - It records the IBG reference and the account (from the permit's encrypted refund bank fields, masked in the UI), and calls `Escrow.refund!`.
+    - It records the IBG reference and `paid_to`, the applicant's refund account from the permit's encrypted bank fields, masked ("Maybank ••• 4410"). Then it calls `Escrow.refund!`.
+    - Staff pay the refund from the taman's deposits account in their own bank. Tamanly only records it.
     - The permit moves to `deposit_refunded`, and `permit.refund_paid` fires.
     - A forfeit skips the payout. The permit stays `completed`, and the escrow balance becomes 0.
   - **Inspections & refunds page** (`admin/#/refunds`):

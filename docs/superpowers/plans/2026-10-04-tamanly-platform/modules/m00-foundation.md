@@ -373,9 +373,10 @@
       permit: "PMT-%04d", payment: "PAY-%05d", booking: "BK-%04d", incident: "INC-%04d",
       notice: "NTC-%03d", listing: "LST-%04d", report: "RPT-%03d", announcement: "ANN-%03d",
       broadcast: "BRC-%03d", schedule: "SCH-%02d",
-      invoice: "INV-%<yymm>s-%<n>05d", receipt: "RCT-%<yymm>s-%<n>05d"
+      invoice: "INV-%<yymm>s-%<n>05d", receipt: "RCT-%<yymm>s-%<n>05d",
+      platform_invoice: "TML-%<yymm>s-%<n>04d"
     }.freeze
-    MONTHLY = %i[invoice receipt].freeze
+    MONTHLY = %i[invoice receipt platform_invoice].freeze
 
     module_function
 

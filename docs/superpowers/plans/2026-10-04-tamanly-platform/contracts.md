@@ -30,6 +30,7 @@ How each surface fills it:
 | `/api/v1`, resident | From the token | nil | Tamans of their active occupancies |
 | `/api/v1`, guard | From the token | The guard's organisation | The guard's assigned tamans |
 | `/api/v1`, staff | From the token | The staff member's organisation | As on `/admin`, without the switcher |
+| `/platform` (M15) | Tamanly operator from the session | nil (operators act across customers) | nil. Platform pages query explicitly by organisation, never through `in_scope` |
 
 On `/api/v1` for residents, `occupancy` is set from the `X-Unit-Id` header (`contracts §8`).
 
@@ -140,6 +141,8 @@ class ApplicationPolicy
 end
 ```
 
+**Platform operators** (`users.platform_role = "operator"`) are Tamanly's own staff. They sit outside this matrix: they use `/platform` only, never get an `/admin` session, and can't see residents' personal data beyond what customer support needs (M15).
+
 Occupant scopes (`occupancies.scopes`, a string array, sub-tenants only): `bills_view`, `bills_pay`, `visitor_passes`, `facility_booking`. Owners and tenants implicitly hold all four. Check with `occupancy.allows?(:bills_pay)`.
 
 ## 4. Audit
@@ -195,17 +198,27 @@ module Payable
 end
 # Includers: Invoice (M06), PermitCharge (M05: deposit and processing fee), BookingCharge (M07)
 
+# Where money goes (ADR-011a). Owner: M06 T06.4 (models), M13 T13.2 (settings page)
+PayoutRoute.for(taman, purpose: :default)     # => PayoutRoute live today (#payout_account, #collection_id); raises Payments::NotSetUp
+# purpose: :default | :sinking_fund | :deposits. Sinking-fund invoices use :sinking_fund and permit charges use :deposits,
+# each falling back to :default when the taman has no route for that purpose.
+# Billplz callbacks arrive at /webhooks/payments/billplz/<payout_account_id> and are verified with that account's key.
+Payable#payout_purpose                         # => :default unless the payable is a sinking-fund invoice
+
 Payments::Checkout.start(payables:, user:, method:, idempotency_key:)
 # method: "online" (Billplz payment page: the payer picks FPX, card or e-wallet there) | "bank_transfer" (slip upload)
+# All payables must share one taman and one payout account; otherwise 422 mixed_payout_accounts.
 # Staff record "cash" and "cheque" payments through Payments::RecordManual (M06 T06.5), not through checkout.
-# The amount charged always equals the sum of the payables' dues. Gateway fees are absorbed, never added (ADR-011a).
+# The amount charged always equals the sum of the payables' dues. No fee is ever added for residents (ADR-011a).
 # => Payments::CheckoutResult(payment:, redirect_url: String | nil, instructions: Hash | nil)
 
+Payments::Gateway.for(payout_account)  # => adapter built from that account's keys (provider billplz or fake)
 Payments::Gateway               # adapter interface: Payments::Gateways::Billplz in production, Payments::Gateways::Fake in dev/test
   #create_checkout(payment) => { provider_ref:, redirect_url: }
   #verify_webhook!(request) => Payments::GatewayEvent | nil (nil = not a payment result; answer 200 and ignore)
   # raises Payments::InvalidSignature
   #fetch(provider_ref) / #cancel(provider_ref)  # used by the pending-payment poller (M06 T06.4)
+  #create_collection(title) => collection_id   # used when a payout route is opened
 
 Payments::GatewayEvent = Data.define(:event_id, :provider_ref, :status, :amount_cents, :raw)
 # event_id: the dedupe key stored in payment_events; Billplz has none, so it is "#{bill_id}:#{state}"
@@ -286,7 +299,7 @@ Owner: **M11**
 | 403 | `forbidden`, `scope_missing` (sub-tenant without the scope) |
 | 404 | `not_found` |
 | 409 | `conflict`, `slot_taken`, `idempotency_conflict`, `invalid_transition` |
-| 422 | `validation_failed`, `unit_required` |
+| 422 | `validation_failed`, `unit_required`, `mixed_payout_accounts`, `payout_not_set_up` |
 | 426 | `upgrade_required` |
 | 429 | `rate_limited` |
 | 502 | `payment_provider_error` |
@@ -324,6 +337,7 @@ Owner: **M00 T00.3**
 | `broadcast` | `BRC-%03d` | BRC-120 | Organisation |
 | `schedule` | `SCH-%02d` | SCH-05 | Organisation |
 | `receipt` | `RCT-%<yymm>s-%05d` | RCT-2610-00012 | Organisation and month |
+| `platform_invoice` | `TML-%<yymm>s-%04d` | TML-2611-0003 | Platform (scope `"platform"`) and month |
 
 ## 10. Notification event catalog
 
@@ -367,6 +381,10 @@ Owner: **M10 T10.4.** Rows are added by the module that fires them.
 | `sos.raised` | M04 | Staff (guard_ops), plus on-duty guards of the taman | ✓ (high priority) | | ✓ |
 | `sos.acknowledged` | M04 | The resident who raised it | ✓ (high priority) | | ✓ |
 | `support.requested` | M13 | Staff (settings) | bell | ✓ (taman email) | |
+| `payout_account.error` | M13 | Staff (settings, full) | bell | ✓ | ✓ |
+| `platform.invoice_issued` | M15 | Customer's portfolio admins | bell | ✓ | ✓ |
+| `platform.invoice_overdue` | M15 | Customer's portfolio admins | bell | ✓ | ✓ |
+| `platform.suspended` | M15 | Customer's portfolio admins | bell | ✓ | ✓ |
 
 **Column meanings**
 - There is no SMS channel (ADR-012). Phone sign-in codes are sent by Firebase, not by this app.

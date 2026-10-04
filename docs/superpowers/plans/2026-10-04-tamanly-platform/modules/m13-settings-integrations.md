@@ -1,8 +1,8 @@
 # M13 · Settings & integrations
 
-**Status:** Not started · **Owner:** — · **Wave:** 4 · **Depends on:** M01, M03. The real adapters plug into M06 (Billplz payments), M10 (email) and M04 (gate webhook).
+**Status:** Not started · **Owner:** — · **Wave:** 4 · **Depends on:** M01, M03, M06 (payout accounts and routes). The real adapters plug into M10 (email) and M04 (gate webhook).
 
-**Goal:** Each company sets up its tamans' profile and branding, connects its own Billplz account and email sender, optionally sends gate events to boom-gate controllers, and reads a searchable audit log of everything staff did.
+**Goal:** Each company sets up its tamans' profile and branding, connects its own Billplz payout accounts and email sender, optionally sends gate events to boom-gate controllers, and reads a searchable audit log of everything staff did.
 
 **Read first:**
 - `../contracts.md` §4 (audit)
@@ -13,7 +13,7 @@
 | Surface | Feature | Covered here |
 |---|---|---|
 | Web | Branding (logo, colors), taman profile | All |
-| Web | Integrations (payment gateway, SMS) | Billplz and email. SMS is dropped by decision (ADR-012) |
+| Web | Integrations (payment gateway, SMS) | Billplz payout accounts and email (T13.2). SMS is dropped by decision (ADR-012) |
 | Web | Audit log of admin actions | All (the page; data comes from M01 T01.7) |
 | Mobile | Support / help | All (T13.5) |
 | Out of scope | Hardware gate controller firmware | Integration hooks only, delivered by T13.3 |
@@ -33,7 +33,7 @@
 | Column | Notes |
 |---|---|
 | `organization_id` | |
-| `kind` | `payment` / `email` / `gate_webhook` |
+| `kind` | `email` / `gate_webhook` |
 | `provider` | |
 | `status` | `connected` / `error` / `not_set_up` |
 | `settings` | jsonb, non-secret |
@@ -42,6 +42,8 @@
 | `last_error` | |
 
 Unique on `[organization_id, kind]`.
+
+Payments don't use this table. `payout_accounts` and `payout_routes` belong to M06 (ADR-011a), and this module adds their settings page.
 
 **`gate_webhooks`**
 
@@ -69,8 +71,9 @@ Unique on `[organization_id, kind]`.
 **Produces:**
 
 ```ruby
-Integration.for(organization, :payment)    # => Integration | nil
-Payments::Gateway.for(organization)        # => Payments::Gateways::Billplz built from the integration; replaces M06's credentials fallback
+Integration.for(organization, :email)      # => Integration | nil
+PayoutAccounts::Connect.call(organization:, label:, api_key:, x_signature_key:, sandbox:, bank_name:, bank_account_name:, bank_account_no:)  # => PayoutAccount
+PayoutAccounts::Repoint.call(taman:, purpose:, to:, on:, by:)  # ends the live route on `on`, opens the new one, cancels open bills on the old account
 OrganizationMailer settings                # per-org SMTP via ActionMailer delivery_method_options
 GateWebhooks::DeliverJob                   # subscribes to GateEvent after_create_commit
 ```
@@ -118,54 +121,59 @@ GateWebhooks::DeliverJob                   # subscribes to GateEvent after_creat
 
 - [ ] **Step 5: Commit:** `git commit -m "Add taman profile and branding"`.
 
-### T13.2 · Integrations: Billplz and email
+### T13.2 · Payout accounts and email
 
 **Files:**
 - Create:
-  - the migration
-  - `app/models/integration.rb`
-  - `app/controllers/admin/integrations_controller.rb`
+  - the `integrations` migration and `app/models/integration.rb`
+  - `app/controllers/admin/payout_accounts_controller.rb`
+  - `app/controllers/admin/payout_routes_controller.rb`
+  - `app/controllers/admin/integrations_controller.rb` (email and gate webhook)
+  - `app/services/payout_accounts/{connect,check,repoint}.rb`
   - views
-  - `app/services/integrations/check.rb`
-- Modify:
-  - `app/services/payments/gateway.rb`
-  - `app/mailers/application_mailer.rb`
+- Modify: `app/mailers/application_mailer.rb`
 - Test:
+  - `spec/services/payout_accounts/connect_spec.rb`
+  - `spec/services/payout_accounts/repoint_spec.rb`
+  - `spec/requests/admin/payout_accounts_spec.rb`
   - `spec/requests/admin/integrations_spec.rb`
-  - `spec/services/integrations/check_spec.rb`
-  - `spec/services/payments/gateway_for_spec.rb`
 
-- [ ] **Step 1: Write failing specs.**
-  - **Integrations page.** It shows one card per kind with:
-    - status
-    - detail line, such as "Billplz · 4 collections · sandbox" or "notices@lestarifm.my · SPF and DKIM verified"
-    - "Set up" / "Edit" / "Test" buttons
-  - **Credentials.**
-    - They are write-only. The form never echoes secrets back and shows "••••••• (saved)".
-    - Saving is audited as `integration.updated`, with the secret keys listed but never their values.
-  - **Test connection.** "Test" runs `Integrations::Check`:
-    - Billplz: fetches each taman's collection (`GET /api/v3/collections/:id`) with the saved API key.
-    - Email: sends a test mail to the current user.
+- [ ] **Step 1: Write the failing payout-account specs.**
+  - **Payout accounts page** (Settings → Payout accounts). It lists each account with:
+    - label;
+    - bank (masked, "Public Bank ••• 3307");
+    - sandbox or live;
+    - status;
+    - the tamans and purposes routed to it.
+  - **Connecting an account** asks for:
+    - label;
+    - Billplz API secret key and X Signature Key;
+    - sandbox switch;
+    - the bank name, account name and account number the Billplz account pays out to. These are shown to residents for manual transfers.
 
-    It records `status` and `last_error`, and is stubbed with WebMock in specs.
-  - **Routing.**
-    - **Billplz setup** asks for the API secret key, the X Signature Key and a sandbox switch.
-      - On save, it creates one collection per taman (`POST /api/v3/collections` with the taman name as `title`), unless a collection id is already stored for that taman.
-      - It stores the ids in `settings.collection_ids`, keyed by taman id. A taman added later gets its collection on the next save or from a "Create missing collections" button.
-    - `Payments::Gateway.for(org)` builds the Billplz adapter from this integration. Without one, checkout returns 422 with "Online payment isn't set up for this taman yet. Pay by bank transfer instead."
-    - The page shows the callback URL (`https://<host>/webhooks/payments/billplz`) for reference. Billplz receives it per bill, so nothing needs setting in the Billplz dashboard.
-  - **Email sender.** Notification emails go out from the organisation's SMTP sender when configured.
-  - **Permissions.** Editing needs `settings: full`.
-
-- [ ] **Step 2: Run them.** Expected: FAIL.
-
-- [ ] **Step 3: Implement it.**
+    `PayoutAccounts::Connect` checks the API key with a read-only Billplz call (listing collections) and saves the account as `connected`. A rejected key fails with "Billplz didn't accept this API key. Copy it again from Billplz → Settings → Keys & Integration."
+  - **Secrets are write-only.** The form shows "••••••• (saved)" and never sends a key back. Saving is audited as `payout_account.connected` or `payout_account.updated`, listing which keys changed but never their values.
+  - **Routing a taman**: on the taman's page, pick the account for `default`, and optionally for `sinking_fund` and `deposits`.
+    - Opening a route creates its Billplz collection (`PayoutRoutes::Open` from M06).
+    - A strata taman without a `sinking_fund` route shows the warning "Strata law needs the sinking fund in its own bank account. Add a sinking fund payout account."
+  - **Cut-over** (`PayoutAccounts::Repoint`): staff pick the new account and a start date, for example when the developer hands over to the owners' body or the taman changes management company.
+    - The old route ends on that date, and the new route starts.
+    - Online payments still `pending` on the old route have their Billplz bills cancelled (`gateway.cancel`). They're marked `failed` with "The payee for this taman changed. Pay again." and the payer gets `payment.failed`.
+    - Paid history is untouched.
+    - Audited as `payout_route.repointed`, with the old and new account labels.
+  - **Disconnecting** an account is refused while any route uses it: "Move Taman Bukit Indah to another account first."
+  - **Health:** an account goes to `error` after a 401 from Billplz, or after 3 callbacks in a row fail the signature check (the X Signature Key can only be proven by a real callback). `payout_account.error` then notifies portfolio admins and puts "Fix payout account" on their worklist.
+  - **Permissions:** connecting, routing and cut-over need `settings: full`. Viewing needs `settings: view`.
+- [ ] **Step 2: Write the failing email integration specs.**
+  - The Integrations page shows email and gate-webhook cards with their status.
+  - "Test" sends a mail to the current user through the organisation's SMTP settings.
+  - Notification emails go out from that sender when configured, and from `notices@tamanly.app` otherwise.
+- [ ] **Step 3: Run them.** Expected: FAIL.
+- [ ] **Step 4: Implement it.**
   - Set up Active Record encryption keys: `bin/rails db:encryption:init`, stored in credentials.
-  - The M10 delivery-health partial renders on this page when present.
-
-- [ ] **Step 4: Run the specs.** Expected: PASS.
-
-- [ ] **Step 5: Commit:** `git commit -m "Add per-organisation Billplz and email integrations"`.
+  - The M10 delivery-health partial renders on the Integrations page when present.
+- [ ] **Step 5: Run the specs.** Expected: PASS.
+- [ ] **Step 6: Commit:** `git commit -m "Add payout accounts page with cut-over, and email integration"`.
 
 ### T13.3 · Gate controller webhook
 
@@ -281,7 +289,8 @@ GateWebhooks::DeliverJob                   # subscribes to GateEvent after_creat
 
 ## Module done when
 
-- [ ] A new company can connect a Billplz sandbox account and its email sender from the dashboard alone, and a sandbox payment settles through its own collection.
+- [ ] A new company can connect its own Billplz sandbox account, route a taman to it, and take a sandbox payment that settles through its own collection, from the dashboard alone.
+- [ ] Repointing a taman to a new account cancels open bills on the old one, and the next payment goes to the new account.
 - [ ] Every admin write performed while testing M01–M13 appears in the audit log with a readable label in EN and BM.
 
 ## Progress log

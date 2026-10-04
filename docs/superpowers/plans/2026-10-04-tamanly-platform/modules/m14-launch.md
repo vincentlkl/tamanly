@@ -44,7 +44,7 @@
 Add the `rotp` gem, with a line in `decisions.md` as ADR-022: "TOTP for staff with money or permission access".
 
 - [ ] **Step 1: Write failing two-factor specs.**
-  - **Who must enrol.** `portfolio_admin` and `billing_ops` must set up an authenticator app at their next sign-in. The QR comes from `rqrcode`, and they get 10 single-use recovery codes.
+  - **Who must enrol.** Platform operators (M15), `portfolio_admin` and `billing_ops` must set up an authenticator app at their next sign-in. The QR comes from `rqrcode`, and they get 10 single-use recovery codes.
   - **Who may enrol.** Other staff roles can turn it on but don't have to.
   - **Signing in.** A wrong code is refused. Five wrong codes lock sign-in for 15 minutes.
   - **Recovery codes.** A recovery code works once.
@@ -144,7 +144,7 @@ Add `sentry-ruby`, `sentry-rails` and `mission_control-jobs`, with ADR-023 in `d
 
 - [ ] **Step 3: Implement it.**
   - Sentry reports errors from web and jobs, scrubbing `phone`, `email`, `ic`, `token` and `password`.
-  - Mount Mission Control Jobs at `/admin/jobs`. Only portfolio admins of the platform operator organisation can open it (`Setting.operator_organization_id`).
+  - Mount Mission Control Jobs at `/admin/jobs`. Only platform operators (`users.platform_role = "operator"`, M15) can open it.
   - Add an external uptime check on `/up` (a hosted pinger, configured in the runbook).
 
 - [ ] **Step 4: Write the runbook.** It covers:
@@ -230,7 +230,8 @@ Add `prosopite` to the development and test groups for N+1 detection, with a lin
     - add the Android app's SHA-256 fingerprints;
     - turn on App Check (Play Integrity, App Attest) and enforce it for Authentication, so bots can't trigger paid verification SMS (ADR-012);
     - keep test phone numbers in the staging project only.
-  - Switch the Billplz integration of each launch company from sandbox to live in Settings → Integrations.
+  - Each launch customer connects their live Billplz payout accounts (M13 T13.2) and routes every taman, including sinking fund for strata.
+  - Put Tamanly's own live Billplz account in `billplz_platform` credentials (M15 T15.4).
   - Set `Setting.min_app_version`.
   - Point the published OpenAPI document at production.
 
@@ -238,7 +239,9 @@ Add `prosopite` to the development and test groups for N+1 detection, with a lin
   - [ ] All modules are `Done` in the README progress table.
   - [ ] The isolation sweep (T14.1) passes.
   - [ ] Review Focus 2–5 specs pass.
-  - [ ] A Billplz sandbox payment settles through the callback, and a deliberately dropped callback is settled by the poller.
+  - [ ] A Billplz sandbox payment settles through the callback into the customer's own account, and a deliberately dropped callback is settled by the poller.
+  - [ ] A platform invoice is issued and paid through Tamanly's own Billplz account (M15).
+  - [ ] A suspended test customer's residents can still pay and their guards can still admit visitors.
   - [ ] One small live Billplz payment settles in production and is refunded through the Billplz dashboard, then marked refunded on Reconciliation.
   - [ ] Firebase phone sign-in works with a real Malaysian number on iOS and Android production builds.
   - [ ] A push was received on real iOS and Android production builds.

@@ -101,34 +101,61 @@ API tokens:
   - Bank-transfer receipts are a payment method too: the resident uploads a slip and staff verify it.
   - Deposit refunds are paid out by the company's bank (IBG). The app records the payout reference rather than calling the gateway.
 
-## ADR-011a · Billplz is the payment gateway (decided 2026-10-04)
+## ADR-011a · Billplz, with one Billplz account per paying-in bank account (decided 2026-10-04, revised the same day)
 
-- **Decision:** Online payments go through Billplz API v3.
+- **Decision:** Online payments go through Billplz API v3, using the **customer's own** Billplz accounts. Tamanly never holds residents' money.
   - Hosts:
     - production: `https://www.billplz.com/api/v3`
     - sandbox: `https://www.billplz-sandbox.com/api/v3`
   - Auth is HTTP Basic, with the account's API secret key as the username.
-  - **Accounts:** each management company connects its own Billplz account in Settings → Integrations (M13). Each taman gets its own Billplz collection, so settlements and reports stay per taman.
-  - **One payment, one bill.** `POST /bills` with:
-    - `collection_id`
-    - `email` or `mobile`
-    - `name`
-    - `amount` in sen
-    - `description`
-    - `callback_url`
-    - `redirect_url`
-    - `reference_1_label: "Payment"` and `reference_1: <PAY-reference>`
+- **Payout accounts:**
+  - A customer (a management company) connects one or more **payout accounts** in Tamanly. Each is one Billplz account: its API secret key, its X Signature Key, and the bank account it pays out to.
+  - Billplz allows exactly one bank account per Billplz account, so:
 
-    The bill `id` becomes `payments.provider_ref`. The bill `url` is where the app sends the resident, and the payer picks FPX, card or e-wallet on the Billplz page.
-  - **Confirmation:**
-    - The server-to-server callback is the only thing that settles a payment. Its X-Signature (HMAC-SHA256 with the account's X Signature Key) is checked first.
-    - The signed redirect only shows the result screen.
-    - A poller checks `GET /bills/:id` for payments still pending after 10 minutes, so a missed callback can't strand a payment.
-  - **Deduplication:** Billplz callbacks carry no event id, so `"#{bill_id}:#{state}"` is the dedupe key in `payment_events`.
-  - **Gateway fees are absorbed, never charged to residents.** The amount on the Billplz bill always equals the bill or deposit being paid.
-    - Billplz takes its fee from each settlement.
-    - Payments and reconciliation record the gross amount the resident paid.
-- **Turned down:** iPay88, Razer Merchant Services, Stripe.
+    | Situation | Payout accounts |
+    |---|---|
+    | A company that collects for several tamans into one client account | One account, used by all of them |
+    | A taman whose owners' body or residents' association has its own bank account | Its own account |
+    | A strata taman | Two accounts: the maintenance account and the sinking fund account. The Strata Management Act 2013, section 51, requires separate bank accounts. Sinking-fund invoices go to the second |
+
+  - **Payout routes** say which account each taman uses, and from which date.
+    - Each taman has one `default` route, plus optional `sinking_fund` and `deposits` routes.
+    - The `deposits` route is the "bank account for refunds" in FEATRURES.md: permit deposits and fees are paid into it and refunded from it.
+    - Each route has its own Billplz collection inside that account, so the customer's Billplz reports split by taman.
+- **One payment, one bill.** `POST /bills` on the route's account with:
+  - `collection_id`
+  - `email` or `mobile`
+  - `name`
+  - `amount` in sen
+  - `description`
+  - `callback_url`
+  - `redirect_url`
+  - `reference_1_label: "Payment"` and `reference_1: <PAY-reference>`
+
+  The bill `id` becomes `payments.provider_ref`. The bill `url` is where the app sends the resident, and the payer picks FPX, card or e-wallet on the Billplz page.
+- **One app address for every customer.** Billplz takes the callback URL per bill, so each bill points to `/webhooks/payments/billplz/<payout_account_id>`, and Tamanly verifies the callback with that account's X Signature Key.
+- **Confirmation:**
+  - The signed server-to-server callback is the only thing that settles a payment.
+  - The signed redirect only shows the result screen.
+  - A poller checks `GET /bills/:id` for payments still pending after 10 minutes.
+- **Deduplication:** Billplz callbacks carry no event id, so `"#{bill_id}:#{state}"` is the dedupe key.
+- **Fees:**
+  - Residents always pay exactly the bill amount.
+  - Billplz takes its transaction fee from the customer's own Billplz Credit Balance, and from their payouts when that runs out, so the customer bears it directly.
+  - Tamanly charges its own fees on a monthly invoice (ADR-025).
+- **Settlement:** Billplz's standard schedule pays each day's collections into the customer's bank on the next business day. Tamanly builds nothing for it. A customer who wants real-time payouts can apply for Billplz's FPX Own ID; that is a Billplz-side setting.
+- **Changing where money goes:**
+  - A new bank account is changed inside the customer's Billplz account. Nothing changes in Tamanly.
+  - A new receiver is handled by repointing the taman's route from a cut-over date (M13 T13.2). Examples:
+    - the developer hands over to the owners' body;
+    - the owners' body becomes the management corporation;
+    - the taman changes management company.
+
+    Unpaid bills open under the old account are cancelled, so nobody pays the old receiver.
+- **Turned down:**
+  - **Billplz split payments from a Tamanly-owned account.** Every receiver still needs its own verified Billplz account, so onboarding is no easier. The fees would land on Tamanly and need recharging. Tamanly would also appear as the merchant on every resident's payment and would sit in the money flow.
+  - **Collecting into Tamanly's account and paying out with Billplz Payment Orders.** Tamanly would hold other people's money, including deposits held for months. That needs prefunding, daily remittance and reconciliation, and invites payment-regulation questions.
+  - **Other gateways:** iPay88, Razer Merchant Services, Stripe.
 
 ## ADR-012 · No SMS provider: push, email and Firebase phone sign-in (decided 2026-10-04)
 
@@ -223,12 +250,33 @@ API tokens:
   - Each data type gets a retention setting in `Setting`, off by default. A portfolio admin can switch one on later without a code change.
 - **Note:** PDPA 2010's retention principle (section 10) says personal data shouldn't be kept longer than its purpose needs. Worker IC/passport scans are the most sensitive item. Have the privacy notice reviewed before launch, and consider switching on purging for those scans.
 
+## ADR-025 · Tamanly is the service provider; customers subscribe (decided 2026-10-04)
+
+- **Decision:** Tamanly runs the platform. Management companies are subscribing customers.
+- **Platform console:** a separate `/platform` area (M15) for Tamanly's own staff, who are `users.platform_role` = `operator`, not staff of any customer. It covers:
+  - onboarding customers;
+  - plans and subscriptions;
+  - monthly invoices to customers;
+  - suspension for non-payment;
+  - payout-account health across customers.
+- **What Tamanly charges a customer each month:**
+  - a subscription priced per unit, with a monthly minimum;
+  - an additional per-payment platform fee for each online resident payment processed in that month.
+
+  The rates live on the plan and can be overridden per customer.
+- **How Tamanly collects:** with its own Billplz account (`Rails.application.credentials.billplz_platform`). Its callback goes to `/webhooks/payments/billplz/platform`. That account receives only Tamanly's own invoices, never residents' money.
+- **Suspension:**
+  - A suspended customer's staff can sign in and pay their Tamanly invoice, but every other admin write is blocked behind a banner.
+  - Residents and guards are never cut off, because a guardhouse and a resident's bills shouldn't stop over a supplier dispute.
+
 ## Resolved business questions
 
 | # | Question | Answer (2026-10-04) | Recorded in |
 |---|---|---|---|
-| 1 | Payment gateway | Billplz | ADR-011a, M06 T06.4, M13 T13.2 |
+| 1 | Payment gateway | Billplz, using each customer's own Billplz accounts (payout accounts) | ADR-011a, M06 T06.4, M13 T13.2 |
 | 2 | SMS provider | None: Firebase phone sign-in, push and email | ADR-012, M01 T01.4, M11 T11.2 |
 | 3 | Firebase project owner | Us (staging and production projects) | ADR-006, M10 T10.3, M14 T14.5 |
-| 4 | Who pays gateway fees | Us; residents pay the bill amount only | ADR-011a, M06 T06.4 |
+| 4 | Who pays gateway fees | Residents pay the bill amount only. Billplz charges its fee to the customer's own account, and Tamanly adds its own per-payment fee to the customer's monthly invoice | ADR-011a, ADR-025, M15 T15.4 |
 | 5 | Data retention | Keep for the life of the service in Malaysia | ADR-024, M14 T14.2 |
+| 6 | Settling collected money to customers | Payments go straight into each customer's own Billplz account; Tamanly never holds the money | ADR-011a |
+| 7 | Business model | Tamanly is the service provider; management companies subscribe | ADR-025, M15 |

@@ -2,9 +2,14 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Each file in `modules/` is a self-contained work package: one agent owns one module at a time. Before coding a module, expand its tasks into code-level, test-first steps with superpowers:writing-plans, using the module guide as the spec.
 
-**Goal:** Build the Tamanly backend as one Rails app: the management web dashboard (`/admin`), the guard console (`/security`), a versioned JSON API for the resident and guard mobile app (`/api/v1`), and push notifications, matching the prototypes in this repo.
+**Goal:** Build the Tamanly backend as one Rails app, matching the prototypes in this repo:
+- the management web dashboard (`/admin`);
+- the guard console (`/security`);
+- a versioned JSON API for the resident and guard mobile app (`/api/v1`);
+- push notifications;
+- the platform console (`/platform`), where Tamanly, as the service provider, runs its subscribing customers.
 
-**Architecture:** One Rails monolith on PostgreSQL. Hotwire (Turbo + Stimulus) and Tailwind render the dashboard and guard console. The mobile app talks to `/api/v1` with bearer tokens. Background work runs on Solid Queue. Push goes through Firebase Cloud Messaging HTTP v1, which reaches both Android and iOS. Live boards use Turbo Streams over Solid Cable. Every record hangs off a taman, and every query goes through `Current` and Pundit scopes, so a management company only ever sees its own tamans.
+**Architecture:** One Rails monolith on PostgreSQL. Hotwire (Turbo + Stimulus) and Tailwind render the dashboard and guard console. The mobile app talks to `/api/v1` with bearer tokens. Background work runs on Solid Queue. Push goes through Firebase Cloud Messaging HTTP v1, which reaches both Android and iOS. Live boards use Turbo Streams over Solid Cable. Every record hangs off a taman, and every query goes through `Current` and Pundit scopes, so a management company only ever sees its own tamans. Residents pay straight into each customer's own Billplz account, and Tamanly bills customers separately for its service (ADR-011a, ADR-025).
 
 **Tech Stack:** Ruby 3.4+, Rails 8.1+, PostgreSQL 16+, Hotwire, Tailwind CSS v4 (`tailwindcss-rails`), ViewComponent, Pundit, Pagy, Solid Queue / Cache / Cable, Active Storage (S3-compatible), RSpec + FactoryBot + rswag (OpenAPI) + Capybara/Cuprite, Firebase (FCM HTTP v1 push and phone sign-in, via `googleauth`), Billplz (payments), `rqrcode`, Prawn, Rack::Attack, Kamal. No SMS provider (ADR-012).
 
@@ -70,13 +75,14 @@ Each line below is backed by a test in the owning task.
 | M03 | [Properties & occupancy](modules/m03-properties.md) | 2 | M01, M02, M11 | Tamans, blocks, units, occupants, property switcher API |
 | M10 | [Notifications & push](modules/m10-notifications-push.md) | 2 | M01, M11 | Devices, inbox, preferences, FCM, `Notifier`, staff bell |
 | M04 | [Gate & security operations](modules/m04-gate-security.md) | 3 | M03, M10 | Passes, gate checks, walk-ins, guard API, guard console, registry, roster, incidents, parcels |
-| M06 | [Billing & payments](modules/m06-billing-payments.md) | 3 | M03, M10 | Invoices, schedules, bulk import, gateway, receipts, reconciliation, escrow, late fees, statements |
+| M06 | [Billing & payments](modules/m06-billing-payments.md) | 3 | M03, M10 | Invoices, schedules, bulk import, payout accounts and routes, Billplz, receipts, reconciliation, escrow, late fees, statements |
 | M07 | [Facilities](modules/m07-facilities.md) | 3 | M03, M10, M06 (fees) | Catalog, rules, bookings, calendar, utilization |
 | M08 | [Marketplace](modules/m08-marketplace.md) | 3 | M03, M10 | Listings, categories, moderation, reports |
 | M09 | [Communications](modules/m09-communications.md) | 3 | M03, M10 | Announcements, templates, broadcasts, home feed |
 | M05 | [Permits & contractors](modules/m05-permits.md) | 4 | M04, M06 | Permit types, applications, review, deposits, passes, on-site board, inspections, refunds, enforcement |
 | M12 | [Analytics & overview](modules/m12-analytics.md) | 4 | M03–M09 | Overview dashboard, daily stats, analytics page |
-| M13 | [Settings & integrations](modules/m13-settings-integrations.md) | 4 | M01, M03 | Taman profile & branding, integrations, gate webhooks, audit log UI, help & support |
+| M13 | [Settings & integrations](modules/m13-settings-integrations.md) | 4 | M01, M03 | Taman profile & branding, payout accounts page and cut-over, email, gate webhooks, audit log UI, help & support |
+| M15 | [Platform console & subscriptions](modules/m15-platform-console.md) | 4 | M01, M02, M06, M10 | Operator access, customer onboarding, plans, monthly invoices to customers, overdue handling and suspension, platform dashboard |
 | M14 | [Launch readiness](modules/m14-launch.md) | 5 | all | Security hardening, performance, observability, backups, mobile release plumbing |
 
 ```mermaid
@@ -90,7 +96,8 @@ flowchart LR
   M06 --> M07 & M05
   M04 --> M05
   M04 & M05 & M06 & M07 & M08 & M09 --> M12
-  M12 & M13 --> M14
+  M06 --> M15
+  M12 & M13 & M15 --> M14
 ```
 
 **Parallel work:** inside a wave, modules don't touch each other's tables. Wave 3 can run five agents at once. A module may start before its dependencies finish if it codes against the interface in `contracts.md` and swaps a stub for the real class when the dependency lands. Mark any stub in the module's progress log.
@@ -115,9 +122,10 @@ Run `ruby docs/superpowers/plans/2026-10-04-tamanly-platform/progress.rb` after 
 | [M10 · Notifications & push](modules/m10-notifications-push.md) | Not started | — | 0/6 | 0/36 |
 | [M11 · API platform](modules/m11-api-platform.md) | Not started | — | 0/5 | 0/33 |
 | [M12 · Analytics & overview](modules/m12-analytics.md) | Not started | — | 0/3 | 0/15 |
-| [M13 · Settings & integrations](modules/m13-settings-integrations.md) | Not started | — | 0/5 | 0/25 |
-| [M14 · Launch readiness](modules/m14-launch.md) | Not started | — | 0/5 | 0/39 |
-| **Total** | | | **0/89** | **0/551** |
+| [M13 · Settings & integrations](modules/m13-settings-integrations.md) | Not started | — | 0/5 | 0/26 |
+| [M14 · Launch readiness](modules/m14-launch.md) | Not started | — | 0/5 | 0/41 |
+| [M15 · Platform console & subscriptions](modules/m15-platform-console.md) | Not started | — | 0/6 | 0/31 |
+| **Total** | | | **0/95** | **0/585** |
 <!-- progress:end -->
 
 ## Agent protocol
@@ -152,6 +160,7 @@ app/
   models/                      # one file per table; concerns in models/concerns
   controllers/admin/           # web dashboard (namespace Admin)
   controllers/security/        # guard console (namespace Security)
+  controllers/platform/        # Tamanly's own platform console (namespace Platform)
   controllers/api/v1/          # mobile API (namespace Api::V1)
   controllers/webhooks/        # Billplz payment callbacks
   services/<domain>/           # e.g. gate/check_pass.rb, payments/checkout.rb
