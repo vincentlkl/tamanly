@@ -2,12 +2,12 @@
 
 **Status:** Not started · **Owner:** — · **Wave:** 1 · **Depends on:** M00
 
-**Goal:** Build who someone is, which tamans they may touch, and what they may do there. This covers companies, users, staff sign-in, phone OTP, API tokens, the permission matrix and the audit trail, plus the Users and Roles admin pages.
+**Goal:** Build who someone is, which tamans they may touch, and what they may do there. This covers companies, users, staff sign-in, Firebase phone sign-in, API tokens, the permission matrix and the audit trail, plus the Users and Roles admin pages.
 
 **Read first:**
 - `../README.md`: Review Focus 1
-- `../decisions.md`: ADR-003, 004, 005, 018
-- `../contracts.md`: §1–§4 and §15
+- `../decisions.md`: ADR-003, 004, 005, 012, 018
+- `../contracts.md`: §1–§4 and §14
 
 **Feature coverage (FEATRURES.md):**
 
@@ -32,7 +32,7 @@
 **In:**
 - `organizations`, `tamans` (base columns only), `users`, `sessions`
 - `staff_memberships`, `staff_taman_assignments`
-- `otp_challenges`, `api_tokens`
+- `api_tokens`
 - `role_permissions`, `taman_permission_overrides`
 - `audit_events`
 - Staff sign-in, password reset and invitation
@@ -52,11 +52,10 @@
 |---|---|---|
 | `organizations` | `name`, `short_name`, `registration_no`, `email_domain` (citext), `status` (`active`/`suspended`) | unique `email_domain` |
 | `tamans` | `organization_id`, `name`, `short_name`, `kind` (`landed`/`strata`), `city`, `state` | unique `[organization_id, name]` |
-| `users` | `name`, `email` (citext), `password_digest`, `phone`, `locale` (`en`/`ms`, default `en`), `status` (`active`/`invited`/`disabled`), `last_seen_at` | unique `email` (partial, not null); unique `phone` (partial, not null); check `email IS NOT NULL OR phone IS NOT NULL` |
+| `users` | `name`, `email` (citext), `password_digest`, `phone`, `firebase_uid`, `locale` (`en`/`ms`, default `en`), `status` (`active`/`invited`/`disabled`), `last_seen_at` | unique `email` (partial, not null); unique `phone` (partial, not null); unique `firebase_uid` (partial, not null); check `email IS NOT NULL OR phone IS NOT NULL` |
 | `sessions` | `user_id`, `ip_address`, `user_agent` | Rails 8 generator |
 | `staff_memberships` | `user_id`, `organization_id`, `role`, `title`, `all_tamans` (bool), `status` (`active`/`disabled`), `pin_digest` (guards; M04) | unique `[user_id, organization_id]` |
 | `staff_taman_assignments` | `staff_membership_id`, `taman_id` | unique pair |
-| `otp_challenges` | `phone`, `code_digest`, `expires_at`, `attempts` (int, default 0), `consumed_at`, `ip` (inet) | index `[phone, created_at]` |
 | `api_tokens` | `user_id`, `family_id` (uuid), `device_uid`, `access_digest`, `refresh_digest`, `access_expires_at`, `refresh_expires_at`, `rotated_at`, `revoked_at` | unique `access_digest`; unique `refresh_digest`; index `family_id` |
 | `role_permissions` | `organization_id`, `role`, `module_key`, `level` (int 0–3) | unique `[organization_id, role, module_key]` |
 | `taman_permission_overrides` | `taman_id`, `role`, `module_key`, `level` | unique `[taman_id, role, module_key]` |
@@ -67,19 +66,17 @@
 **Produces:** everything in contracts §1–§4, plus:
 
 ```ruby
-Auth::Otp.issue!(phone, ip:)        # raises Auth::Otp::TooSoon, Auth::Otp::Invalid
-Auth::Otp.verify!(phone, code)      # => User (created when new); raises Auth::Otp::Invalid, Auth::Otp::Expired
+Auth::FirebasePhone.verify!(id_token)        # => User (created on first sign-in); raises Auth::FirebasePhone::Invalid
 Auth::Tokens.issue!(user, device_uid:)       # => Auth::Tokens::Pair(access_token, refresh_token, expires_in)
 Auth::Tokens.authenticate(access_token)      # => ApiToken | nil
 Auth::Tokens.refresh!(refresh_token)         # => Pair; raises Auth::Tokens::Invalid
 Auth::Tokens.revoke!(api_token)
-Sms.deliver(to:, body:)             # adapter; Sms::Fake records to Sms::Fake.deliveries in dev/test (real adapter: M13)
 Admin::BaseController               # authenticated, sets Current, includes Pundit, rescues NotAuthorized -> 403 page
 ```
 
 **Consumes:**
 - `Phone.normalize` (M00)
-- The `contracts.md` §15 spec helpers
+- The `contracts.md` §14 spec helpers
 
 ## Tasks
 
@@ -230,50 +227,87 @@ Admin::BaseController               # authenticated, sets Current, includes Pund
 
 - [ ] **Step 6: Commit** with `git commit -m "Add password reset and staff invitations"`.
 
-### T01.4 · Phone OTP and API tokens
+### T01.4 · Firebase phone sign-in and API tokens
+
+There is no SMS provider (ADR-012). The mobile app signs the person in with Firebase phone authentication, so Firebase sends and checks the code. The app then posts the Firebase ID token to Rails. Rails verifies the token and swaps it for its own rotating API tokens. M11 T11.2 adds the endpoint.
 
 **Files:**
 - Create:
-  - `app/models/otp_challenge.rb`, `app/models/api_token.rb` and their migrations
-  - `app/services/auth/otp.rb`, `app/services/auth/tokens.rb`
-  - `app/lib/sms.rb`, `app/lib/sms/fake.rb`
+  - `app/models/api_token.rb` and its migration
+  - migration adding `users.firebase_uid`
+  - `app/services/auth/firebase_phone.rb`
+  - `app/services/auth/tokens.rb`
 - Test:
-  - `spec/services/auth/otp_spec.rb`
+  - `spec/services/auth/firebase_phone_spec.rb`
   - `spec/services/auth/tokens_spec.rb`
+  - `spec/support/firebase.rb`
 
-- [ ] **Step 1: Write the failing OTP specs.**
+**Credentials:** `bin/rails credentials:edit` → `firebase: { project_id: }`. Use the staging project in staging and the production project in production (ADR-006).
+
+- [ ] **Step 1: Write the test helper.** It signs tokens with a local RSA key and points the verifier at that key, so specs never call Google.
 
   ```ruby
-  RSpec.describe Auth::Otp do
-    let(:phone) { "012-345 6789" }
-    it "sends a 6-digit code by SMS and accepts it once" do
-      Auth::Otp.issue!(phone, ip: "1.2.3.4")
-      expect(Sms::Fake.deliveries.last).to include(to: "+60123456789")
-      user = Auth::Otp.verify!(phone, "123456")
-      expect(user.phone).to eq("+60123456789")
-      expect { Auth::Otp.verify!(phone, "123456") }.to raise_error(Auth::Otp::Invalid)
+  # spec/support/firebase.rb
+  module FirebaseHelpers
+    KEY = OpenSSL::PKey::RSA.new(2048)
+    PROJECT = "tamanly-test"
+
+    def firebase_id_token(phone: "+60123456789", uid: "uid-#{phone}", aud: PROJECT, exp: 1.hour.from_now, iat: Time.current)
+      payload = { iss: "https://securetoken.google.com/#{aud}", aud:, sub: uid, phone_number: phone,
+                  auth_time: iat.to_i, iat: iat.to_i, exp: exp.to_i }
+      JWT.encode(payload, KEY, "RS256", { kid: "test-key" })
     end
-    it "refuses a resend within 30 seconds" do
-      Auth::Otp.issue!(phone, ip: nil)
-      expect { Auth::Otp.issue!(phone, ip: nil) }.to raise_error(Auth::Otp::TooSoon)
-    end
-    it "expires after 5 minutes" do
-      Auth::Otp.issue!(phone, ip: nil)
-      travel 301.seconds
-      expect { Auth::Otp.verify!(phone, "123456") }.to raise_error(Auth::Otp::Expired)
-    end
-    it "locks after 5 wrong codes" do
-      Auth::Otp.issue!(phone, ip: nil)
-      5.times { expect { Auth::Otp.verify!(phone, "000000") }.to raise_error(Auth::Otp::Invalid) }
-      expect { Auth::Otp.verify!(phone, "123456") }.to raise_error(Auth::Otp::Expired)
-    end
-    it "rejects numbers that are not Malaysian" do
-      expect { Auth::Otp.issue!("12345", ip: nil) }.to raise_error(Auth::Otp::Invalid)
+  end
+
+  RSpec.configure do |c|
+    c.include FirebaseHelpers
+    c.before do
+      key = Google::Auth::IDTokens::KeyInfo.new(id: "test-key", key: FirebaseHelpers::KEY.public_key, algorithm: "RS256")
+      Auth::FirebasePhone.verifier = Google::Auth::IDTokens::Verifier.new(key_source: Google::Auth::IDTokens::StaticKeySource.new([key]))
+      allow(Auth::FirebasePhone).to receive(:project_id).and_return(FirebaseHelpers::PROJECT)
     end
   end
   ```
 
-- [ ] **Step 2: Write the failing token specs:**
+- [ ] **Step 2: Write the failing sign-in specs.**
+
+  ```ruby
+  RSpec.describe Auth::FirebasePhone do
+    it "creates a user from a verified Malaysian number on first sign-in" do
+      user = described_class.verify!(firebase_id_token(phone: "+60123456789", uid: "abc"))
+      expect(user).to have_attributes(phone: "+60123456789", firebase_uid: "abc")
+    end
+    it "returns the same user on later sign-ins" do
+      first = described_class.verify!(firebase_id_token(uid: "abc"))
+      expect(described_class.verify!(firebase_id_token(uid: "abc"))).to eq(first)
+    end
+    it "matches an existing user by phone, e.g. a guard invited by staff" do
+      guard = create(:user, phone: "+60123456789", firebase_uid: nil)
+      expect(described_class.verify!(firebase_id_token(uid: "xyz"))).to eq(guard)
+      expect(guard.reload.firebase_uid).to eq("xyz")
+    end
+    it "rejects an expired token" do
+      token = firebase_id_token(iat: 2.hours.ago, exp: 1.hour.ago)
+      expect { described_class.verify!(token) }.to raise_error(described_class::Invalid)
+    end
+    it "rejects a token for another Firebase project" do
+      expect { described_class.verify!(firebase_id_token(aud: "someone-else")) }.to raise_error(described_class::Invalid)
+    end
+    it "rejects a token signed by another key" do
+      forged = JWT.encode({ sub: "x", phone_number: "+60123456789" }, OpenSSL::PKey::RSA.new(2048), "RS256", { kid: "test-key" })
+      expect { described_class.verify!(forged) }.to raise_error(described_class::Invalid)
+    end
+    it "rejects numbers outside Malaysia" do
+      expect { described_class.verify!(firebase_id_token(phone: "+6591234567")) }.to raise_error(described_class::Invalid, /Malaysian/)
+    end
+    it "refuses a disabled user" do
+      create(:user, phone: "+60123456789", status: "disabled")
+      expect { described_class.verify!(firebase_id_token) }.to raise_error(described_class::Invalid, /switched off/)
+    end
+  end
+  ```
+
+- [ ] **Step 3: Write the failing token specs:**
   - Issue, then authenticate, returns the token.
   - An expired access token returns nil.
   - Refresh returns a new pair, and the old access token stops working.
@@ -281,45 +315,46 @@ Admin::BaseController               # authenticated, sets Current, includes Pund
   - Reusing within 10 s raises `Invalid` but leaves the family alive. This covers mobile apps that fire two refreshes at once.
   - A disabled user's token doesn't authenticate.
 
-- [ ] **Step 3: Run them.** Expected: FAIL.
+- [ ] **Step 4: Run them.** Expected: FAIL.
 
-- [ ] **Step 4: Implement `Auth::Otp`.**
+- [ ] **Step 5: Implement `Auth::FirebasePhone`.** It uses the ID-token verifier that ships in `googleauth` (already in the Gemfile for push), so no new gem is needed.
 
   ```ruby
   module Auth
-    class Otp
-      TTL = 5.minutes
-      MAX_ATTEMPTS = 5
-      RESEND_AFTER = 30.seconds
+    class FirebasePhone
+      CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com"
       class Invalid < StandardError; end
-      class Expired < StandardError; end
-      class TooSoon < StandardError; end
 
-      def self.issue!(raw_phone, ip:)
-        phone = Phone.normalize(raw_phone) or raise Invalid
-        last = OtpChallenge.where(phone:).order(:created_at).last
-        raise TooSoon if last && last.created_at > RESEND_AFTER.ago
-        code = Rails.env.local? ? "123456" : format("%06d", SecureRandom.random_number(1_000_000))
-        OtpChallenge.create!(phone:, code_digest: digest(code), expires_at: TTL.from_now, ip:)
-        Sms.deliver(to: phone, body: I18n.t("auth.otp.sms", code:))
+      class << self
+        attr_writer :verifier
+
+        def verify!(id_token)
+          payload = verifier.verify(id_token.to_s, aud: project_id, iss: "https://securetoken.google.com/#{project_id}")
+          raise Invalid, "no phone number on this sign-in" if payload["phone_number"].blank? || payload["sub"].blank?
+          phone = Phone.normalize(payload["phone_number"]) or raise Invalid, I18n.t("auth.phone.not_malaysian")
+          user = User.find_by(firebase_uid: payload["sub"]) || User.create_or_find_by!(phone:)
+          raise Invalid, I18n.t("auth.phone.disabled") if user.disabled?
+          user.update!(firebase_uid: payload["sub"], phone:) if user.firebase_uid != payload["sub"] || user.phone != phone
+          user
+        rescue Google::Auth::IDTokens::VerificationError, JWT::DecodeError => e
+          raise Invalid, e.message
+        end
+
+        def verifier
+          @verifier ||= Google::Auth::IDTokens::Verifier.new(
+            key_source: Google::Auth::IDTokens::X509CertHttpKeySource.new(CERTS_URL)
+          )
+        end
+
+        def project_id = Rails.application.credentials.dig(:firebase, :project_id)
       end
-
-      def self.verify!(raw_phone, code)
-        phone = Phone.normalize(raw_phone) or raise Invalid
-        ch = OtpChallenge.where(phone:, consumed_at: nil).order(:created_at).last or raise Invalid
-        raise Expired if ch.expires_at.past? || ch.attempts >= MAX_ATTEMPTS
-        ch.increment!(:attempts)
-        raise Invalid unless ActiveSupport::SecurityUtils.secure_compare(ch.code_digest, digest(code.to_s))
-        ch.update!(consumed_at: Time.current)
-        User.create_or_find_by!(phone:)
-      end
-
-      def self.digest(code) = OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, code)
     end
   end
   ```
 
-- [ ] **Step 5: Implement `Auth::Tokens`.**
+  The certificate source caches Google's keys and refreshes them when they rotate. If the installed `googleauth` version names these classes differently, keep the same checks (RS256, `kid` lookup, `aud`, `iss`, `exp`) using `JWT.decode` against the same certificate URL.
+
+- [ ] **Step 6: Implement `Auth::Tokens`.**
 
   ```ruby
   module Auth
@@ -365,16 +400,12 @@ Admin::BaseController               # authenticated, sets Current, includes Pund
   end
   ```
 
-- [ ] **Step 6: Implement the SMS adapter.**
-  - `Sms.deliver` calls `Sms.adapter.deliver(to:, body:)`.
-  - `Sms.adapter` is `Sms::Fake` in local environments. M13 T13.2 sets it from the organisation's integration settings; until then production raises `Sms::NotConfigured`.
-  - `Sms::Fake` keeps an array of deliveries and has a `reset!` method, called in `spec/support`.
-
 - [ ] **Step 7: Add strings and run the specs.**
-  - Add `auth.otp.sms` in EN and BM: "Your Tamanly code is %{code}. It expires in 5 minutes. Don't share it." and "Kod Tamanly anda ialah %{code}. Sah selama 5 minit. Jangan kongsi kod ini."
+  - Add `auth.phone.not_malaysian` in EN and BM: "Use a Malaysian mobile number (+60)." / "Gunakan nombor telefon bimbit Malaysia (+60)."
+  - Add `auth.phone.disabled` in EN and BM: "This account is switched off. Contact your management office." / "Akaun ini telah dimatikan. Hubungi pejabat pengurusan anda."
   - Run the specs. Expected: PASS.
 
-- [ ] **Step 8: Commit** with `git commit -m "Add phone OTP and rotating API tokens"`.
+- [ ] **Step 8: Commit** with `git commit -m "Add Firebase phone sign-in and rotating API tokens"`.
 
 ### T01.5 · `Current`, access and tenant isolation
 

@@ -2,7 +2,7 @@
 
 **Status:** Not started · **Owner:** — · **Wave:** 2 · **Depends on:** M01, M11. M03 is needed for unit recipient helpers; until it lands, code against `Unit#recipients` from contracts.
 
-**Goal:** One call, `Notifier.deliver`, takes any event to the right people. It always lands in the in-app inbox. It is also sent by push (FCM HTTP v1 to Android and iOS), email or SMS, following the event catalog and each person's preferences. Staff see their events in the dashboard bell.
+**Goal:** One call, `Notifier.deliver`, takes any event to the right people. It always lands in the in-app inbox. It is also sent by push (FCM HTTP v1 to Android and iOS) or email, following the event catalog and each person's preferences. Staff see their events in the dashboard bell.
 
 **Read first:**
 - `../contracts.md` §5 (Notifier) and §10 (event catalog)
@@ -33,8 +33,8 @@
 |---|---|---|
 | `devices` | `user_id`, `device_uid`, `platform` (`ios`/`android`), `fcm_token`, `app_version`, `os_version`, `locale`, `last_seen_at` | Unique `device_uid`. Unique `fcm_token`, partial, not null |
 | `notifications` | `user_id`, `event_key`, `title`, `body`, `deep_link`, `admin_path`, `record_type`, `record_id`, `taman_id`, `data` (jsonb), `read_at`, `created_at` | Index `[user_id, created_at desc]`. Partial index `[user_id] WHERE read_at IS NULL` |
-| `notification_deliveries` | `notification_id`, `channel` (`push`/`email`/`sms`), `device_id`, `status` (`queued`/`sent`/`failed`/`skipped`), `error`, `attempts`, `sent_at` | Index `[notification_id]` |
-| `notification_preferences` | `user_id`, `category`, `push`, `email`, `sms` (booleans) | Unique `[user_id, category]`. A missing row uses the catalog defaults |
+| `notification_deliveries` | `notification_id`, `channel` (`push`/`email`), `device_id`, `status` (`queued`/`sent`/`failed`/`skipped`), `error`, `attempts`, `sent_at` | Index `[notification_id]` |
+| `notification_preferences` | `user_id`, `category`, `push`, `email` (booleans) | Unique `[user_id, category]`. A missing row uses the catalog defaults |
 
 Preference categories, as shown on G3: `visitors`, `bills`, `bookings`, `permits`, `announcements`, `marketplace`, `account`.
 
@@ -69,7 +69,6 @@ Push::Fcm.new.deliver(token:, title:, body:, data:, high_priority:, ttl:, collap
 **Consumes:**
 - `User#locale` and `Permissions` (M01)
 - `Unit#recipients` (M03)
-- `Sms` (M01)
 - `Api::V1::BaseController` (M11)
 
 ## API endpoints
@@ -81,8 +80,8 @@ Push::Fcm.new.deliver(token:, title:, body:, data:, high_priority:, ttl:, collap
 | GET | `/api/v1/notifications` | Inbox, cursor-paginated. `?unread=true` filters |
 | POST | `/api/v1/notifications/:id/read` | Mark one read |
 | POST | `/api/v1/notifications/read_all` | Mark all read |
-| GET | `/api/v1/notification_preferences` | Categories with `push`/`email`/`sms`, the locked events and the reason they're locked |
-| PUT | `/api/v1/notification_preferences` | `{ preferences: [{ category, push, email, sms }] }` |
+| GET | `/api/v1/notification_preferences` | Categories with `push`/`email`, the locked events and the reason they're locked |
+| PUT | `/api/v1/notification_preferences` | `{ preferences: [{ category, push, email }] }` |
 
 ## Tasks
 
@@ -146,7 +145,7 @@ Push::Fcm.new.deliver(token:, title:, body:, data:, high_priority:, ttl:, collap
   - `spec/lib/push/fcm_spec.rb` (WebMock)
   - `spec/jobs/notifications/push_job_spec.rb`
 
-**Credentials:** `bin/rails credentials:edit` → `fcm: { project_id:, service_account_json: }`. Use a Firebase project owned by the company (decisions, open question 3).
+**Credentials:** `bin/rails credentials:edit` → `firebase: { project_id:, service_account_json: }`. This is the same entry M01 T01.4 reads for phone sign-in. Use the Firebase projects we create: staging credentials in staging, production in production (ADR-006).
 
 - [ ] **Step 1: Write the failing client specs** with WebMock stubs.
   - The OAuth token request goes to `https://oauth2.googleapis.com/token`. The token is cached and reused for 50 minutes: two deliveries make only one token request.
@@ -192,7 +191,7 @@ Push::Fcm.new.deliver(token:, title:, body:, data:, high_priority:, ttl:, collap
       SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
       Result = Data.define(:status, :error, :retry_after)
 
-      def initialize(creds: Rails.application.credentials.fcm)
+      def initialize(creds: Rails.application.credentials.firebase)
         @project_id = creds.fetch(:project_id)
         @json = creds.fetch(:service_account_json)
       end
@@ -247,7 +246,7 @@ Push::Fcm.new.deliver(token:, title:, body:, data:, high_priority:, ttl:, collap
   - `app/services/notifier.rb`
   - `app/notifications/catalog.rb`
   - `app/notifications/recipients.rb`
-  - `app/jobs/notifications/{email,sms}_job.rb`
+  - `app/jobs/notifications/email_job.rb`
   - `app/mailers/notification_mailer.rb`
   - `app/views/notification_mailer/notify.{html,text}.erb`
   - `config/locales/{en,ms}/notifications.yml`
@@ -301,17 +300,17 @@ Push::Fcm.new.deliver(token:, title:, body:, data:, high_priority:, ttl:, collap
 
   Notes:
   - `ActiveRecord.after_all_transactions_commit` exists from Rails 7.2. It runs the block immediately when there is no open transaction.
-  - `Notifications.job_for(:push)` returns `PushJob`, `:email` returns `EmailJob`, and `:sms` returns `SmsJob`.
+  - `Notifications.job_for(:push)` returns `PushJob`, and `:email` returns `EmailJob`. There is no SMS channel (ADR-012).
 
 - [ ] **Step 4: Implement `Notifications::Recipients.staff(taman, module_key)`.** It returns active memberships of `taman.organization` that cover the taman, have `admin?` and pass `Permissions.allows?(m.user, module_key, :view, taman)`, mapped to their users.
 
-- [ ] **Step 5: Implement the email and SMS channels.**
+- [ ] **Step 5: Implement the email channel.**
   - `NotificationMailer.notify(notification)` uses one branded template: logo, title, body, and a button to the deep link's web fallback or `admin_path`. The sender comes from the organisation's settings (M13), falling back to `notices@tamanly.app`.
-  - `SmsJob` sends `"#{title}: #{body}"` truncated to 160 characters, to users with a phone.
+  - Users without an email address are skipped for this channel, and their delivery is marked `skipped` with `no_email`.
 
 - [ ] **Step 6: Run the specs.** Expected: PASS.
 
-- [ ] **Step 7: Commit** with `git commit -m "Add Notifier, event catalog and email/SMS channels"`.
+- [ ] **Step 7: Commit** with `git commit -m "Add Notifier, event catalog and email channel"`.
 
 ### T10.5 · Preferences and recipient rules (Review Focus 4)
 
@@ -346,7 +345,7 @@ Push::Fcm.new.deliver(token:, title:, body:, data:, high_priority:, ttl:, collap
 
     it "honours a push opt-out but still writes the inbox" do
       owner = create(:occupancy, unit:, relationship: "owner").user
-      NotificationPreference.create!(user: owner, category: "bills", push: false, email: false, sms: false)
+      NotificationPreference.create!(user: owner, category: "bills", push: false, email: false)
       n = Notifier.deliver("test.bill", record: unit).find { _1.user == owner }
       expect(n).to be_present
       expect(n.deliveries).to be_empty
@@ -356,14 +355,14 @@ Push::Fcm.new.deliver(token:, title:, body:, data:, high_priority:, ttl:, collap
       Notifications::Catalog.register("test.must", category: :bills, channels: %i[push], mandatory: true,
         recipients: ->(unit) { unit.recipients }, params: ->(_) { {} }, deep_link: ->(_) { "tamanly://x" })
       owner = create(:occupancy, unit:, relationship: "owner").user
-      NotificationPreference.create!(user: owner, category: "bills", push: false, email: false, sms: false)
+      NotificationPreference.create!(user: owner, category: "bills", push: false, email: false)
       expect(Notifier.deliver("test.must", record: unit).find { _1.user == owner }.deliveries.map(&:channel)).to eq(["push"])
     end
   end
   ```
 
 - [ ] **Step 2: Write the failing preferences API specs.**
-  - GET returns 7 categories. Each has `push`, `email` and `sms` booleans (catalog defaults when there is no row) and `locked_events: [{ key, title, reason }]`, where `reason` is "Needed for payments and security, so it can't be turned off."
+  - GET returns 7 categories. Each has `push` and `email` booleans (catalog defaults when there is no row) and `locked_events: [{ key, title, reason }]`, where `reason` is "Needed for payments and security, so it can't be turned off."
   - PUT updates the rows and ignores unknown categories.
 
 - [ ] **Step 3: Run them.** Expected: FAIL.

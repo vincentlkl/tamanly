@@ -2,18 +2,18 @@
 
 **Status:** Not started · **Owner:** — · **Wave:** 3 · **Depends on:** M03 and M10. Also M02 and M11.
 
-**Goal:** Management publishes announcements to a whole taman or to chosen blocks and units, and sends SMS or email broadcasts from a bilingual template library. Residents see the announcements in a home feed, together with alerts that need their attention.
+**Goal:** Management publishes announcements to a whole taman or to chosen blocks and units, and sends email or push broadcasts from a bilingual template library. Residents see the announcements in a home feed, together with alerts that need their attention.
 
 **Read first:**
-- `../contracts.md` §5, §10 and §14
-- `../decisions.md` ADR-012 (SMS and email adapters)
+- `../contracts.md` §5, §10 and §13
+- `../decisions.md` ADR-012 (no SMS provider: email and push only)
 
 **Feature coverage (FEATRURES.md):**
 
 | Surface | Feature | Covered here |
 |---|---|---|
 | Web | Announcements (taman-wide or unit-targeted) | All |
-| Web | Broadcast SMS / email / in-app (where configured) | All |
+| Web | Broadcast SMS / email / in-app (where configured) | Email and push/in-app. SMS is dropped by decision (ADR-012) |
 | Web | Template library | All |
 | Mobile | Taman / property home feed (announcements, alerts) | All |
 | Mobile | Push for announcements | All |
@@ -64,7 +64,7 @@ Unique on `[announcement_id, user_id]`.
 |---|---|
 | `organization_id` | |
 | `name` | |
-| `channel` | `sms` / `email` / `push` |
+| `channel` | `email` / `push` |
 | `category` | `billing` / `security` / `facilities` / `general` |
 | `subject_en`, `subject_ms`, `body_en`, `body_ms` | |
 | `archived_at` | |
@@ -76,7 +76,7 @@ Unique on `[announcement_id, user_id]`.
 | `reference` | |
 | `organization_id` | |
 | `taman_ids`, `audience`, `target_ids` | Same rules as announcements |
-| `channel` | `sms` / `email` |
+| `channel` | `email` / `push` |
 | `template_id` | |
 | `subject`, `body` | |
 | `status` | `draft` / `scheduled` / `sending` / `sent` / `partly_failed` / `failed` |
@@ -117,7 +117,7 @@ Feed::Registry.alert(key) { |occupancy| [Feed::Alert(title:, body:, deep_link:, 
 **Consumes:**
 - From M03: `Occupancy.active`, `Unit`, `Block`
 - From M10: `Notifier`
-- From M01: `Sms` and the mailer settings from M13
+- From M13: the organisation's email sender settings
 
 ## API endpoints
 
@@ -216,7 +216,7 @@ Feed::Registry.alert(key) { |occupancy| [Feed::Alert(title:, body:, deep_link:, 
 
 - [ ] **Step 5: Commit** with `git commit -m "Add home feed with announcements and alerts"`.
 
-### T09.3 · Templates and SMS/email broadcasts
+### T09.3 · Templates and email/push broadcasts
 
 **Files:**
 - Create:
@@ -233,16 +233,17 @@ Feed::Registry.alert(key) { |occupancy| [Feed::Alert(title:, body:, deep_link:, 
 - [ ] **Step 1: Write failing specs.**
   - **Templates**
     - An unknown variable is rejected: "%{balance} isn't a variable you can use. Pick from: name, unit, taman, amount_due, due_date, date."
-    - SMS bodies over 306 characters (2 segments) get a warning showing the segment count.
+    - Push bodies over 178 characters get a warning that phones will cut them off on the lock screen.
     - A template used by a scheduled broadcast can't be archived.
   - **Sending**
-    - `Broadcasts::Send` creates one delivery per recipient who has a phone (for SMS) or an email address (for email). Recipients without one are counted as failed with the error "No phone number".
+    - `Broadcasts::Send` creates one delivery per recipient: by email for people with an email address, by push (through `Notifier`, which also writes the in-app inbox) for people with the app.
+      - Recipients the channel can't reach are counted as failed, with the error "No email address" or "App not installed".
     - It renders the variables per recipient, in their locale.
     - Delivery jobs update the counts.
     - It ends as `partly_failed` when any delivery fails, `sent` when none fail, and `failed` when all fail.
   - **Scheduling and limits**
     - Scheduled broadcasts send at `scheduled_at`.
-    - SMS broadcasts need the SMS integration to be connected (M13). Otherwise sending is blocked with "Connect an SMS gateway in Settings → Integrations first."
+    - Email broadcasts need the email integration to be connected (M13). Otherwise sending is blocked with "Connect email in Settings → Integrations first."
   - **Broadcasts page** (`admin/#/broadcasts`)
     - Lists broadcasts with delivered and failed counts. The drawer shows the failed recipients and their reasons, and a "Retry failed" button.
   - **Templates page** (`admin/#/templates`)
@@ -257,12 +258,12 @@ Feed::Registry.alert(key) { |occupancy| [Feed::Alert(title:, body:, deep_link:, 
 
 - [ ] **Step 4: Run the specs.** Expected: PASS.
 
-- [ ] **Step 5: Commit** with `git commit -m "Add message templates and SMS/email broadcasts"`.
+- [ ] **Step 5: Commit** with `git commit -m "Add message templates and email/push broadcasts"`.
 
 ## Module done when
 
 - [ ] An announcement scheduled for 09:00 KL goes out at 09:00 KL as a push to the right audience and appears in the home feed.
-- [ ] An SMS broadcast through the Fake SMS adapter reports accurate delivered and failed counts.
+- [ ] An email broadcast and a push broadcast each report accurate delivered and failed counts.
 
 ## Progress log
 

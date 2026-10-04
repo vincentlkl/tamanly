@@ -4,7 +4,7 @@
 
 **Goal:** Money flows that are never ambiguous:
 - Management creates, schedules and bulk-imports invoices.
-- Residents pay in the app by FPX, card, DuitNow QR or a bank-transfer slip.
+- Residents pay in the app through Billplz (FPX, card or e-wallet, picked on the Billplz page) or by uploading a bank-transfer slip. Gateway fees are absorbed: residents pay exactly the amount on the bill.
 - Staff reconcile anything that doesn't match automatically.
 - Reminders and late fees run on their own.
 - Deposits held for permits and bookings sit in an escrow ledger that can't go negative.
@@ -12,7 +12,7 @@
 
 **Read first:**
 - `../contracts.md` §6 (payments) and §9 (references)
-- `../decisions.md`: ADR-008 and ADR-011
+- `../decisions.md`: ADR-008, ADR-011 and ADR-011a (Billplz)
 - Review Focus 2 and Review Focus 5
 - `PRODUCT.md` principle 3: "Money is clear"
 
@@ -106,7 +106,8 @@ Constraints and indexes:
 |---|---|
 | `reference` | |
 | `organization_id`, `taman_id`, `payer_id` | |
-| `method` | `fpx` / `card` / `duitnow_qr` / `bank_transfer` / `cash` / `cheque` |
+| `method` | `online` (Billplz) / `bank_transfer` / `cash` / `cheque` |
+| `channel` | What Billplz reports the payer used, e.g. `FPX`; blank for other methods |
 | `amount_cents` | |
 | `status` | contracts §6 |
 | `provider`, `provider_ref` | |
@@ -157,7 +158,7 @@ Receipts carry an attached `pdf`.
 | `late_fee_flat_cents` | |
 | `late_fee_cap_cents` | |
 | `late_fee_categories` | `text[]` |
-| `reminders` | jsonb `[{ offset_days, push, email, sms }]` |
+| `reminders` | jsonb `[{ offset_days, push, email }]` |
 | `bank_name`, `bank_account_name`, `bank_account_no` | For transfer instructions |
 
 **`escrow_entries`**: append-only.
@@ -227,13 +228,13 @@ All require `X-Unit-Id` and scopes as noted.
 `POST /api/v1/payments` takes:
 
 ```json
-{ "payables": [{ "type": "invoice", "id": "uuid" }], "method": "fpx" }
+{ "payables": [{ "type": "invoice", "id": "uuid" }], "method": "online" }
 ```
 
 For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `receipt_slip` file.
 
 **Webhooks:**
-- `POST /webhooks/payments/:provider` checks the signature and is never throttled.
+- `POST /webhooks/payments/:provider` checks the signature and is never throttled. Billplz posts its callback to `/webhooks/payments/billplz`.
 - `GET /payments/:id/return` is the gateway return page. It deep-links back to `tamanly://payments/<id>`.
 
 ## Tasks
@@ -399,14 +400,15 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
 
 ### T06.4 · Payment gateway, checkout and webhooks (Review Focus 2)
 
-**Prerequisite:** pick the gateway (decisions, open question 1) and record ADR-011a. Until then, build against `Payments::Gateways::Fake` and do the real adapter in Step 8.
+**Gateway:** Billplz (ADR-011a). Build and test against `Payments::Gateways::Fake` first, then add `Payments::Gateways::Billplz` in Step 8. Use a Billplz sandbox account (`www.billplz-sandbox.com`) for staging.
 
 **Files:**
 - Create:
   - migrations for `payments`, `payment_allocations`, `payment_events`
   - `app/models/{payment,payment_allocation,payment_event}.rb`
   - `app/services/payments/{checkout,settle,gateway}.rb`
-  - `app/services/payments/gateways/{fake,<provider>}.rb`
+  - `app/services/payments/gateways/{fake,billplz}.rb`
+  - `app/jobs/payments/poll_pending_job.rb`
   - `app/controllers/webhooks/payments_controller.rb`
   - `app/controllers/payments/returns_controller.rb`
   - `app/controllers/api/v1/payments_controller.rb`
@@ -415,6 +417,8 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   - `spec/services/payments/settle_spec.rb`
   - `spec/requests/webhooks/payments_spec.rb`
   - `spec/requests/api/v1/payments_spec.rb`
+  - `spec/services/payments/gateways/billplz_spec.rb`
+  - `spec/jobs/payments/poll_pending_job_spec.rb`
 
 - [ ] **Step 1: Write failing checkout specs.**
   - Checkout for two open invoices of one unit creates one `pending` payment with two allocations. The amount equals the sum of `amount_due_cents`. It returns the gateway `redirect_url`.
@@ -445,7 +449,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
     context "under concurrency" do
       include_context "concurrency"
       it "settles exactly once when two different events race" do
-        event = Payments::GatewayEvent.new(provider_ref: payment.provider_ref, status: :succeeded, amount_cents: 18_500, raw: {})
+        event = Payments::GatewayEvent.new(event_id: "#{payment.provider_ref}:paid", provider_ref: payment.provider_ref, status: :succeeded, amount_cents: 18_500, raw: {})
         2.times.map do
           Thread.new { ActiveRecord::Base.connection_pool.with_connection { Payments::Settle.call(Payment.find(payment.id), event:) } }
         end.each(&:join)
@@ -512,8 +516,8 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   ```
 
 - [ ] **Step 6: Implement the webhook controller.**
-  1. Call `gateway.verify_webhook!(request)`.
-  2. Run `PaymentEvent.create_or_find_by!(provider:, provider_event_id:)`, and return 200 immediately if `processed_at` is set.
+  1. Call `gateway.verify_webhook!(request)`. When it returns `nil` (an update Billplz sends that isn't a payment result), answer 200 and stop.
+  2. Run `PaymentEvent.create_or_find_by!(provider:, provider_event_id: event.event_id)`, and return 200 immediately if `processed_at` is set.
   3. Find the payment by `provider_ref` and call `Settle`.
   4. Set `processed_at`.
   5. Return 200.
@@ -524,11 +528,101 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
   - It works in development, test and staging.
   - Its `redirect_url` points to a local page with "Pay" and "Fail" buttons. Each button posts a signed webhook to the app.
 
-- [ ] **Step 8: Implement the real adapter** behind the same interface. Stub the provider with WebMock using its documented sample payloads and signature algorithm. Credentials live per organisation in M13 integrations; until then, use `Rails.application.credentials.payments`.
+- [ ] **Step 8: Write the failing Billplz adapter specs** (WebMock; no real calls).
+  - **`create_checkout(payment)`:**
+    - It POSTs to `<host>/api/v3/bills` with Basic auth (API secret key as username).
+    - The form carries:
+      - `collection_id`: the taman's collection;
+      - `email` (or `mobile` in `60XXXXXXXXX` form when there is no email);
+      - `name`, `description` (≤ 200 chars);
+      - `amount`: exactly `payment.amount_cents`, with no fee added (ADR-011a);
+      - `callback_url`: `/webhooks/payments/billplz`;
+      - `redirect_url`: `/payments/:id/return`;
+      - `reference_1_label: "Payment"` and `reference_1: payment.reference`.
+    - It returns `{ provider_ref: <bill id>, redirect_url: <bill url> }`.
+  - **`verify_webhook!(request)`:**
+    - A callback whose `x_signature` matches returns a `GatewayEvent`:
+      - `event_id` is `"#{id}:#{state}"`;
+      - `status` is `:succeeded` when `paid == "true"`;
+      - `amount_cents` is `paid_amount`.
+    - A wrong signature raises `Payments::InvalidSignature`.
+    - A callback with `paid == "false"` and `transaction_status == "failed"` returns `:failed`. Any other unpaid callback returns `nil`, which the controller answers with 200 and ignores.
+    - Use the worked X Signature example from Billplz's API reference as a fixed test vector, so the spec doesn't just repeat the implementation.
+  - **Errors:** a Billplz 5xx or timeout on create raises `Payments::ProviderError`. The API maps it to 502 `payment_provider_error` with "The payment service didn't respond. Try again in a minute."
+  - **`PollPendingJob`:** runs every 5 minutes for online payments still `pending` after 10 minutes.
+    - It calls `GET /bills/:id`. A paid bill settles through `Settle` with the same `event_id` as the callback would use, so a late callback is a no-op.
+    - Payments pending for 24 hours become `failed` with "Payment not completed". The job deletes the Billplz bill (`DELETE /bills/:id`) so it can't be paid afterwards.
+  - **Channel:** after settling, `GET /bills/:id/transactions` fills `payments.channel` from the transaction's reported payment channel. A failure there leaves `channel` blank and never fails the payment.
 
-- [ ] **Step 9: Run the specs.** Expected: PASS.
+- [ ] **Step 9: Implement `Payments::Gateways::Billplz`.**
 
-- [ ] **Step 10: Commit:** `git commit -m "Add payment checkout, gateway adapter and idempotent webhooks"`.
+  ```ruby
+  module Payments
+    module Gateways
+      class Billplz
+        HOSTS = { live: "https://www.billplz.com/api/v3", sandbox: "https://www.billplz-sandbox.com/api/v3" }.freeze
+
+        def initialize(api_key:, x_signature_key:, collection_ids:, sandbox: false)
+          @api_key, @x_key, @collections = api_key, x_signature_key, collection_ids
+          @host = HOSTS.fetch(sandbox ? :sandbox : :live)
+        end
+
+        def create_checkout(payment)
+          payer = payment.payer
+          form = { collection_id: @collections.fetch(payment.taman_id), name: payer.name.presence || "Resident",
+                   amount: payment.amount_cents, description: payment.allocations.map { _1.payable.payable_label }.join(", ").truncate(200),
+                   callback_url: Rails.application.routes.url_helpers.webhooks_payment_url("billplz"),
+                   redirect_url: Rails.application.routes.url_helpers.payment_return_url(payment),
+                   reference_1_label: "Payment", reference_1: payment.reference }
+          payer.email.present? ? form[:email] = payer.email : form[:mobile] = payer.phone.delete_prefix("+")
+          bill = request(:post, "/bills", form)
+          { provider_ref: bill.fetch("id"), redirect_url: bill.fetch("url") }
+        end
+
+        def verify_webhook!(request)
+          params = request.request_parameters.to_h
+          raise InvalidSignature unless ActiveSupport::SecurityUtils.secure_compare(signature(params), params["x_signature"].to_s)
+          status = if params["paid"] == "true" then :succeeded
+                   elsif params["transaction_status"] == "failed" then :failed
+                   end
+          return nil unless status
+          GatewayEvent.new(event_id: "#{params['id']}:#{params['state']}", provider_ref: params["id"], status:,
+                           amount_cents: params["paid_amount"].to_i, raw: params)
+        end
+
+        def fetch(bill_id) = request(:get, "/bills/#{bill_id}")
+        def cancel(bill_id) = request(:delete, "/bills/#{bill_id}")
+
+        private
+
+        # Billplz X Signature: "key" + "value" for every field except x_signature,
+        # sorted ascending (case-insensitive), joined with "|", HMAC-SHA256 with the X Signature Key.
+        def signature(params)
+          source = params.except("x_signature").map { |k, v| "#{k}#{v}" }.sort_by(&:downcase).join("|")
+          OpenSSL::HMAC.hexdigest("SHA256", @x_key, source)
+        end
+
+        def request(verb, path, form = nil)
+          uri = URI("#{@host}#{path}")
+          req = { post: Net::HTTP::Post, get: Net::HTTP::Get, delete: Net::HTTP::Delete }.fetch(verb).new(uri)
+          req.basic_auth(@api_key, "")
+          req.set_form_data(form) if form
+          res = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 10) { _1.request(req) }
+          raise ProviderError, "Billplz #{res.code}" unless res.is_a?(Net::HTTPSuccess)
+          res.body.present? ? JSON.parse(res.body) : {}
+        rescue Net::OpenTimeout, Net::ReadTimeout, SocketError => e
+          raise ProviderError, e.message
+        end
+      end
+    end
+  end
+  ```
+
+  `Payments::Gateway.for(organization)` returns this adapter, built from the organisation's Billplz integration (M13 T13.2). Until M13 lands, it reads `Rails.application.credentials.billplz` (`api_key`, `x_signature_key`, `collection_ids`, `sandbox`). Schedule `PollPendingJob` in `config/recurring.yml`.
+
+- [ ] **Step 10: Run the specs.** Expected: PASS.
+
+- [ ] **Step 11: Commit:** `git commit -m "Add Billplz checkout, signed callbacks and pending-payment poller"`.
 
 ### T06.5 · Bank-transfer slips and the reconciliation board
 
@@ -567,7 +661,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
     - Audits `payment.recorded`.
   - **Reconciliation page** (`admin/#/reconciliation`):
     - Tabs: Unmatched, Receipt to verify, Matched, Failed, All.
-    - Filters: taman, method, date.
+    - Filters: taman, method (online, bank transfer, cash, cheque), channel, date.
     - Search: reference, payer, provider ref.
     - The drawer shows the slip image or PDF inline.
     - Counts in the sidebar come from the registry.
@@ -603,7 +697,7 @@ For a bank transfer, send it as multipart with `method: "bank_transfer"` and a `
     - `due_on`, `period`.
   - **`GET /invoices/:id`** includes:
     - `can_pay`, which is false for a sub-tenant with only `bills_view` (the E5 screen);
-    - `pay_methods`;
+    - `pay_methods`: `["online", "bank_transfer"]` (online means the Billplz page);
     - `pdf_url`, a 5-minute signed URL.
   - **`GET /billing/summary`** returns, for every unit where I hold `bills_view`:
     - `unit`, `taman`;

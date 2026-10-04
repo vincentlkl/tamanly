@@ -4,20 +4,20 @@
 
 **Goal:** Make the app safe to run with real residents' money and personal data:
 - harden access;
-- meet PDPA retention and access rights;
+- meet PDPA access rights, with data kept for the life of the service (ADR-024);
 - see failures before users report them;
 - prove performance at 10× the seed volume;
 - ship repeatable deploys, plus the plumbing the mobile release needs.
 
 **Read first:**
-- `../decisions.md`: ADR-019, ADR-020, and open question 5
+- `../decisions.md`: ADR-011a (Billplz), ADR-012 (Firebase phone sign-in), ADR-019, ADR-020, ADR-024 (retention)
 - The README Review Focus (all five)
 
 **Feature coverage:** non-functional requirements. The table maps each to its task.
 
 | Requirement | Task |
 |---|---|
-| Malaysian PDPA 2010 retention rules | T14.2 |
+| Malaysian PDPA 2010: retention setting, privacy notice | T14.2 |
 | Access requests | T14.2 |
 | App store account deletion (M11 T11.2) | T14.2 |
 | Security | T14.1 |
@@ -78,7 +78,7 @@ Add the `rotp` gem, with a line in `decisions.md` as ADR-022: "TOTP for staff wi
 
 **Files:**
 - Create:
-  - `app/jobs/retention/{visitor_logs,permit_documents,otp_and_tokens}_job.rb`
+  - `app/jobs/retention/{visitor_logs,permit_documents,tokens}_job.rb`
   - `app/services/accounts/export.rb`
   - `app/controllers/api/v1/me/exports_controller.rb`
   - `app/views/pages/privacy.html.erb`
@@ -87,13 +87,14 @@ Add the `rotp` gem, with a line in `decisions.md` as ADR-022: "TOTP for staff wi
   - `spec/services/accounts/export_spec.rb`
 
 - [ ] **Step 1: Write failing specs.**
-  - **Visitor logs.** Passes and gate events older than 12 months are anonymised:
-    - `visitor_name` becomes "Visitor";
-    - `visitor_phone` and `visitor_ic_last4` are set to `nil`;
-    - the plate is kept for 24 months for security, then set to `nil`.
-  - **Permit documents.** IC and passport scans and other permit documents are purged 6 months after the permit reaches `deposit_refunded` or `rejected`. The permit row and its amounts stay.
-  - **OTP challenges** are deleted after 7 days.
-  - **API tokens** that are expired or revoked are deleted after 30 days.
+  - **Default is keep (ADR-024).** With the retention settings at their defaults (`nil`, meaning keep), both retention jobs change nothing, however old the data.
+  - **Visitor logs, when a portfolio admin sets `retention.visitor_log_months`:** passes and gate events older than that are anonymised.
+    - `visitor_name` becomes "Visitor".
+    - `visitor_phone` and `visitor_ic_last4` are set to `nil`.
+    - The plate and the times stay, for security history.
+  - **Permit documents, when `retention.permit_documents_months` is set:** IC/passport scans and other permit documents are purged that many months after the permit reaches `deposit_refunded` or `rejected`. The permit row and its amounts stay.
+  - **Settings page.** Changing a retention setting is audited as `retention.updated`. The page explains what each setting removes and that removal can't be undone.
+  - **API tokens** that are expired or revoked are deleted after 30 days. This is housekeeping, not personal data, so it always runs.
   - **Personal data export.** `POST /api/v1/me/exports` builds a JSON file with:
     - profile;
     - occupancies;
@@ -107,7 +108,7 @@ Add the `rotp` gem, with a line in `decisions.md` as ADR-022: "TOTP for staff wi
 
     The file is emailed as a link that expires in 7 days. The request is audited as `account.exported`.
   - **Privacy page.** `/privacy` serves the privacy notice in EN and BM. `me` returns `privacy_url`.
-  - **Retention settings.** The retention periods live in `Setting` and can be changed by a portfolio admin. This depends on the business decision in open question 5.
+  - **Privacy notice wording.** It says data is kept for as long as the service runs, stored in Malaysia or Singapore (ADR-020), and can be exported or deleted on request in the app.
 
 - [ ] **Step 2: Run them.** Expected: FAIL.
 
@@ -116,7 +117,7 @@ Add the `rotp` gem, with a line in `decisions.md` as ADR-022: "TOTP for staff wi
 
 - [ ] **Step 4: Run the specs.** Expected: PASS.
 
-- [ ] **Step 5: Commit** with `git commit -m "Add PDPA retention jobs and personal data export"`.
+- [ ] **Step 5: Commit** with `git commit -m "Add retention settings, personal data export and privacy notice"`.
 
 ### T14.3 · Observability
 
@@ -149,7 +150,8 @@ Add `sentry-ruby`, `sentry-rails` and `mission_control-jobs`, with ADR-023 in `d
 - [ ] **Step 4: Write the runbook.** It covers:
   - restarting jobs;
   - replaying failed payment webhooks: `PaymentEvent.where(processed_at: nil)`;
-  - rotating FCM credentials;
+  - rotating Firebase credentials (push and phone sign-in share them);
+  - rotating Billplz keys, and checking a payment in the Billplz dashboard against `payments.provider_ref`;
   - restoring from backup;
   - revoking a station device.
 
@@ -222,7 +224,13 @@ Add `prosopite` to the development and test groups for N+1 detection, with a lin
 
 - [ ] **Step 5: Add the mobile release plumbing.**
   - Serve `apple-app-site-association` and `assetlinks.json` so `https://<host>/p/<token>` opens the app when it's installed.
-  - Upload the production FCM service account to credentials, and the APNs key to Firebase.
+  - Put the production Firebase service account in credentials (`firebase.project_id`, `firebase.service_account_json`), and upload the APNs key to Firebase.
+  - In the production Firebase project:
+    - enable the Phone sign-in provider;
+    - add the Android app's SHA-256 fingerprints;
+    - turn on App Check (Play Integrity, App Attest) and enforce it for Authentication, so bots can't trigger paid verification SMS (ADR-012);
+    - keep test phone numbers in the staging project only.
+  - Switch the Billplz integration of each launch company from sandbox to live in Settings → Integrations.
   - Set `Setting.min_app_version`.
   - Point the published OpenAPI document at production.
 
@@ -230,7 +238,9 @@ Add `prosopite` to the development and test groups for N+1 detection, with a lin
   - [ ] All modules are `Done` in the README progress table.
   - [ ] The isolation sweep (T14.1) passes.
   - [ ] Review Focus 2–5 specs pass.
-  - [ ] Real gateway sandbox payment, webhook and refund recorded end to end.
+  - [ ] A Billplz sandbox payment settles through the callback, and a deliberately dropped callback is settled by the poller.
+  - [ ] One small live Billplz payment settles in production and is refunded through the Billplz dashboard, then marked refunded on Reconciliation.
+  - [ ] Firebase phone sign-in works with a real Malaysian number on iOS and Android production builds.
   - [ ] A push was received on real iOS and Android production builds.
   - [ ] Backup drill done.
   - [ ] The runbook has been reviewed by a second person.

@@ -6,7 +6,7 @@
 
 **Architecture:** One Rails monolith on PostgreSQL. Hotwire (Turbo + Stimulus) and Tailwind render the dashboard and guard console. The mobile app talks to `/api/v1` with bearer tokens. Background work runs on Solid Queue. Push goes through Firebase Cloud Messaging HTTP v1, which reaches both Android and iOS. Live boards use Turbo Streams over Solid Cable. Every record hangs off a taman, and every query goes through `Current` and Pundit scopes, so a management company only ever sees its own tamans.
 
-**Tech Stack:** Ruby 3.4+, Rails 8.1+, PostgreSQL 16+, Hotwire, Tailwind CSS v4 (`tailwindcss-rails`), ViewComponent, Pundit, Pagy, Solid Queue / Cache / Cable, Active Storage (S3-compatible), RSpec + FactoryBot + rswag (OpenAPI) + Capybara/Cuprite, FCM HTTP v1 (`googleauth`), `rqrcode`, Prawn, Rack::Attack, Kamal.
+**Tech Stack:** Ruby 3.4+, Rails 8.1+, PostgreSQL 16+, Hotwire, Tailwind CSS v4 (`tailwindcss-rails`), ViewComponent, Pundit, Pagy, Solid Queue / Cache / Cable, Active Storage (S3-compatible), RSpec + FactoryBot + rswag (OpenAPI) + Capybara/Cuprite, Firebase (FCM HTTP v1 push and phone sign-in, via `googleauth`), Billplz (payments), `rqrcode`, Prawn, Rack::Attack, Kamal. No SMS provider (ADR-012).
 
 **Spec (read before any module):**
 - `../../../../FEATRURES.md`: the feature list. "Mobile app" bullets become API work; "Web dashboard" bullets become admin work.
@@ -25,7 +25,7 @@ Every task's requirements implicitly include this section.
 
 - Money is MYR, stored as integer sen in `*_cents` columns, displayed `RM 1,050.00` (two decimals, thousands separator). Never use floats.
 - Business dates and "today" use `Asia/Kuala_Lumpur`. Store timestamps as UTC. API times are ISO 8601 with the `+08:00` offset.
-- Languages are English and Bahasa Melayu (`en`, `ms`). Every user-facing string, email, SMS and push template exists in both.
+- Languages are English and Bahasa Melayu (`en`, `ms`). Every user-facing string, email and push template exists in both.
 - A management company sees and edits only its own tamans. A resident sees only units they actively occupy. A sub-tenant gets only the scopes granted: `bills_view`, `bills_pay`, `visitor_passes`, `facility_booking`.
 - Staff roles: `portfolio_admin`, `taman_manager`, `billing_ops`, `security_lead`. Field role: `guard`. Occupant relationships: `owner`, `tenant`, `sub_tenant`.
 - Permit statuses, exactly: Pending Review, Docs requested, Pending Deposit, Approved, Work In Progress, Inspection Scheduled, Completed, Deposit Refunded, Rejected.
@@ -64,7 +64,7 @@ Each line below is backed by a test in the owning task.
 | ID | Module | Wave | Depends on | Owns (admin · API · jobs) |
 |---|---|---|---|---|
 | M00 | [Foundation](modules/m00-foundation.md) | 0 | none | App, config, CI, shared helpers, seeds frame |
-| M01 | [Identity, tenancy & permissions](modules/m01-identity-tenancy.md) | 1 | M00 | Orgs, users, staff sign-in, OTP + tokens (models), permissions, audit, users & roles admin |
+| M01 | [Identity, tenancy & permissions](modules/m01-identity-tenancy.md) | 1 | M00 | Orgs, users, staff sign-in, Firebase phone sign-in + API tokens (services), permissions, audit, users & roles admin |
 | M02 | [Admin shell & UI kit](modules/m02-admin-shell.md) | 1 | M00 (M01 for real data) | Layout, sidebar, scope switcher, index engine, drawer, palette, worklist frame |
 | M11 | [API platform](modules/m11-api-platform.md) | 1 | M00, M01 T01.4 | Base controller, auth endpoints, errors, pagination, idempotency, rate limits, OpenAPI |
 | M03 | [Properties & occupancy](modules/m03-properties.md) | 2 | M01, M02, M11 | Tamans, blocks, units, occupants, property switcher API |
@@ -108,7 +108,7 @@ Run `ruby docs/superpowers/plans/2026-10-04-tamanly-platform/progress.rb` after 
 | [M03 · Properties & occupancy](modules/m03-properties.md) | Not started | — | 0/6 | 0/38 |
 | [M04 · Gate & security operations](modules/m04-gate-security.md) | Not started | — | 0/10 | 0/56 |
 | [M05 · Permits & contractors](modules/m05-permits.md) | Not started | — | 0/8 | 0/44 |
-| [M06 · Billing & payments](modules/m06-billing-payments.md) | Not started | — | 0/9 | 0/56 |
+| [M06 · Billing & payments](modules/m06-billing-payments.md) | Not started | — | 0/9 | 0/57 |
 | [M07 · Facilities](modules/m07-facilities.md) | Not started | — | 0/5 | 0/27 |
 | [M08 · Marketplace](modules/m08-marketplace.md) | Not started | — | 0/3 | 0/15 |
 | [M09 · Communications](modules/m09-communications.md) | Not started | — | 0/3 | 0/15 |
@@ -116,8 +116,8 @@ Run `ruby docs/superpowers/plans/2026-10-04-tamanly-platform/progress.rb` after 
 | [M11 · API platform](modules/m11-api-platform.md) | Not started | — | 0/5 | 0/33 |
 | [M12 · Analytics & overview](modules/m12-analytics.md) | Not started | — | 0/3 | 0/15 |
 | [M13 · Settings & integrations](modules/m13-settings-integrations.md) | Not started | — | 0/5 | 0/25 |
-| [M14 · Launch readiness](modules/m14-launch.md) | Not started | — | 0/5 | 0/37 |
-| **Total** | | | **0/89** | **0/548** |
+| [M14 · Launch readiness](modules/m14-launch.md) | Not started | — | 0/5 | 0/39 |
+| **Total** | | | **0/89** | **0/551** |
 <!-- progress:end -->
 
 ## Agent protocol
@@ -153,7 +153,7 @@ app/
   controllers/admin/           # web dashboard (namespace Admin)
   controllers/security/        # guard console (namespace Security)
   controllers/api/v1/          # mobile API (namespace Api::V1)
-  controllers/webhooks/        # payment / SMS provider callbacks
+  controllers/webhooks/        # Billplz payment callbacks
   services/<domain>/           # e.g. gate/check_pass.rb, payments/checkout.rb
   policies/                    # Pundit policies
   components/ui/               # ViewComponents for the design system

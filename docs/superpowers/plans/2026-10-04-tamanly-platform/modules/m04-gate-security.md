@@ -688,7 +688,7 @@ Pass::Code.generate(taman)  / Pass::Code.normalize(str) # Crockford base32, 6 ch
   - **`GET /api/v1/emergency_contacts`** returns the taman's directory entries with `emergency: true`, plus the "Guardhouse" entry first.
   - **`POST /api/v1/sos`:**
     - It creates an `open` alert.
-    - It fires `sos.raised`, high priority with SMS, to on-duty guards and staff with `guard_ops`.
+    - It fires `sos.raised` as a high-priority push to on-duty guards and staff with `guard_ops`. There is no SMS (ADR-012); the guard console banner is the backstop for a guardhouse device with push muted.
     - It shows a full-width red banner on every guard console of that taman (Turbo Stream) until acknowledged.
     - It is rate-limited to 3 per user per 10 minutes.
   - **Acknowledge:** from the console or the guard API, it records the guard and the time. It fires `sos.acknowledged` to the resident: "The guardhouse has seen your alert and is on the way."

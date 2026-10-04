@@ -130,12 +130,13 @@ Api::V1::UnitContext                              # concern: sets Current.occupa
 Api::V1::PropertySerializer
 Occupancies::Assign.call(unit:, relationship:, phone:, name:, scopes: [], starts_on:, ends_on: nil, by:)  # => Occupancy (active if user exists and by staff; invited otherwise)
 Occupancies::End.call(occupancy, on:, reason:)
+Occupancies::InviteMessage.call(occupancy)        # => { text:, share_url: "https://wa.me/60123456789?text=..." } (no SMS; ADR-012)
 ```
 
 `Access.resident_taman_ids(user)` is contracts §2; it is implemented here.
 
 **Consumes:**
-- M01: `Current`, `Permissions`, `AuditEvent`, `Sms`
+- M01: `Current`, `Permissions`, `AuditEvent`
 - M02: index engine and drawer
 - M11: base controller and serializers
 - `Notifier.deliver` from M10 for `occupancy.invited`, `occupancy.invite_accepted`, `occupancy.link_approved` and `occupancy.link_rejected`. Until M10 lands, stub it as a no-op `Notifier` and record that in the progress log.
@@ -151,7 +152,7 @@ Occupancies::End.call(occupancy, on:, reason:)
 | POST | `/api/v1/invites/:id/decline` | Decline an invite |
 | GET / POST | `/api/v1/link_requests` | Request to link a unit (A4). Multipart with `proof`. Idempotent |
 | GET | `/api/v1/units/:unit_id/sub_tenants` | Sub-tenants of a unit I own or rent |
-| POST | `/api/v1/units/:unit_id/sub_tenants` | Invite a sub-tenant: `{ phone, name, scopes[] }` |
+| POST | `/api/v1/units/:unit_id/sub_tenants` | Invite a sub-tenant: `{ phone, name, scopes[] }`. Returns the invite plus `share_url` (WhatsApp) |
 | PATCH | `/api/v1/units/:unit_id/sub_tenants/:id` | Change a sub-tenant's scopes |
 | DELETE | `/api/v1/units/:unit_id/sub_tenants/:id` | Revoke a sub-tenant |
 | GET | `/api/v1/directory` | Services for the current unit's taman (`X-Unit-Id`) |
@@ -293,7 +294,11 @@ Occupancies::End.call(occupancy, on:, reason:)
 - [ ] **Step 2: Write the failing service specs.**
   - `Assign` by staff:
     - A known phone gets an `active` occupancy.
-    - An unknown phone gets `invited` plus `occupancy.invited`/SMS: "You've been added to <unit>, <taman> on Tamanly. Get the app: <link>".
+    - An unknown phone gets `invited`. There is no SMS (ADR-012), so the drawer shows a "Share on WhatsApp" button.
+      - The button opens `https://wa.me/<digits>?text=<message>` on the staff member's own device.
+      - The message is prefilled in the invitee's language when known, else EN: "You've been added to <unit>, <taman> on Tamanly. Get the app and sign in with this number: <app link>".
+      - `Occupancies::InviteMessage.call(occupancy)` returns `{ text:, share_url: }` for both the drawer and the API.
+    - The invite stays waiting until that phone number signs in. A known user also gets the `occupancy.invited` push.
     - The first owner or tenant of a vacant unit sets the unit to `occupied`.
   - `End`:
     - With a future `on`, it sets `ending` and the unit to `under_notice`, but only when no other tenant stays.
@@ -405,6 +410,7 @@ Occupancies::End.call(occupancy, on:, reason:)
 
 - [ ] **Step 2: Write the failing sub-tenant specs.**
   - An owner or tenant can invite with a subset of scopes. An empty scopes list → 422 "Pick at least one thing they can do."
+  - The response includes `share_url` from `Occupancies::InviteMessage`, so the app can open WhatsApp with the invite text (A6). The invitee sees the invite on first sign-in with that number (A7).
   - A sub-tenant can't invite others → 403.
   - PATCH scopes is audited as `occupancy.scopes_changed` (actor is the resident).
   - DELETE ends the occupancy today.
@@ -457,7 +463,7 @@ Occupancies::End.call(occupancy, on:, reason:)
 ## Module done when
 
 - [ ] Seeds load 1,406 units with occupants that match the prototype's counts within ±2%.
-- [ ] Aisyah, signing in by OTP, sees her 3 properties and can switch between them. A staff member of another company can't open any of them.
+- [ ] Aisyah, signing in by phone (Firebase test number), sees her 3 properties and can switch between them. A staff member of another company can't open any of them.
 - [ ] Review Focus 4's recipients specs pass.
 
 ## Progress log

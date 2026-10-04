@@ -8,7 +8,7 @@
 - `../../../../DESIGN.md`, section "Web admin console"
 - `../../../../admin/ui.css`, which holds the tokens and components to port
 - `../../../../admin/app.js`: `NAV`, `navHTML`, `ixHTML`, `fitIx`, `F()`, `drawer`, `toast`, the palette, `vbars`/`hbars`
-- `../contracts.md` §14
+- `../contracts.md` §13
 
 **Feature coverage:**
 
@@ -77,7 +77,7 @@ Helpers in `Ui::Helpers`:
 ## Interfaces
 
 **Produces:**
-- `contracts.md` §14
+- `contracts.md` §13
 - The components and controllers above
 - `layouts/admin`
 - `Admin::IndexQuery`

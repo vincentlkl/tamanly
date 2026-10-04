@@ -1,19 +1,19 @@
 # M13 · Settings & integrations
 
-**Status:** Not started · **Owner:** — · **Wave:** 4 · **Depends on:** M01, M03. The real adapters plug into M06 (payments), M01 (SMS), M10 (email) and M04 (gate webhook).
+**Status:** Not started · **Owner:** — · **Wave:** 4 · **Depends on:** M01, M03. The real adapters plug into M06 (Billplz payments), M10 (email) and M04 (gate webhook).
 
-**Goal:** Each company sets up its tamans' profile and branding, connects its own payment gateway, SMS sender and email, optionally sends gate events to boom-gate controllers, and reads a searchable audit log of everything staff did.
+**Goal:** Each company sets up its tamans' profile and branding, connects its own Billplz account and email sender, optionally sends gate events to boom-gate controllers, and reads a searchable audit log of everything staff did.
 
 **Read first:**
 - `../contracts.md` §4 (audit)
-- `../decisions.md`: ADR-011, ADR-012, ADR-018
+- `../decisions.md`: ADR-011a (Billplz), ADR-012 (no SMS), ADR-018
 
 **Feature coverage (FEATRURES.md):**
 
 | Surface | Feature | Covered here |
 |---|---|---|
 | Web | Branding (logo, colors), taman profile | All |
-| Web | Integrations (payment gateway, SMS) | All, plus email |
+| Web | Integrations (payment gateway, SMS) | Billplz and email. SMS is dropped by decision (ADR-012) |
 | Web | Audit log of admin actions | All (the page; data comes from M01 T01.7) |
 | Mobile | Support / help | All (T13.5) |
 | Out of scope | Hardware gate controller firmware | Integration hooks only, delivered by T13.3 |
@@ -33,7 +33,7 @@
 | Column | Notes |
 |---|---|
 | `organization_id` | |
-| `kind` | `payment` / `sms` / `email` / `gate_webhook` |
+| `kind` | `payment` / `email` / `gate_webhook` |
 | `provider` | |
 | `status` | `connected` / `error` / `not_set_up` |
 | `settings` | jsonb, non-secret |
@@ -69,9 +69,8 @@ Unique on `[organization_id, kind]`.
 **Produces:**
 
 ```ruby
-Integration.for(organization, :sms)        # => Integration | nil
-Sms.adapter_for(organization)              # replaces M01's env-based Sms.adapter
-Payments::Gateway.for(organization)        # replaces M06's credentials fallback
+Integration.for(organization, :payment)    # => Integration | nil
+Payments::Gateway.for(organization)        # => Payments::Gateways::Billplz built from the integration; replaces M06's credentials fallback
 OrganizationMailer settings                # per-org SMTP via ActionMailer delivery_method_options
 GateWebhooks::DeliverJob                   # subscribes to GateEvent after_create_commit
 ```
@@ -119,7 +118,7 @@ GateWebhooks::DeliverJob                   # subscribes to GateEvent after_creat
 
 - [ ] **Step 5: Commit:** `git commit -m "Add taman profile and branding"`.
 
-### T13.2 · Integrations: payment gateway, SMS and email
+### T13.2 · Integrations: Billplz and email
 
 **Files:**
 - Create:
@@ -129,31 +128,32 @@ GateWebhooks::DeliverJob                   # subscribes to GateEvent after_creat
   - views
   - `app/services/integrations/check.rb`
 - Modify:
-  - `app/lib/sms.rb`
   - `app/services/payments/gateway.rb`
   - `app/mailers/application_mailer.rb`
 - Test:
   - `spec/requests/admin/integrations_spec.rb`
   - `spec/services/integrations/check_spec.rb`
-  - `spec/lib/sms_adapter_spec.rb`
+  - `spec/services/payments/gateway_for_spec.rb`
 
 - [ ] **Step 1: Write failing specs.**
   - **Integrations page.** It shows one card per kind with:
     - status
-    - detail line, such as "Merchant ID TML-LESTARI-01 · settles daily to Maybank ••• 2210" or "Sender ID TAMANLY · 4,210 credits left"
+    - detail line, such as "Billplz · 4 collections · sandbox" or "notices@lestarifm.my · SPF and DKIM verified"
     - "Set up" / "Edit" / "Test" buttons
   - **Credentials.**
     - They are write-only. The form never echoes secrets back and shows "••••••• (saved)".
     - Saving is audited as `integration.updated`, with the secret keys listed but never their values.
   - **Test connection.** "Test" runs `Integrations::Check`:
-    - Payment: a sandbox ping to the provider.
-    - SMS: sends a test SMS to the current user.
-    - Email: sends a test mail.
+    - Billplz: fetches each taman's collection (`GET /api/v3/collections/:id`) with the saved API key.
+    - Email: sends a test mail to the current user.
 
     It records `status` and `last_error`, and is stubbed with WebMock in specs.
   - **Routing.**
-    - `Sms.adapter_for(org)` returns the configured adapter. Without one, SMS fails with `Sms::NotConfigured`, and M09 broadcasts show the "Connect an SMS gateway" message.
-    - Payment checkout uses the organisation's gateway credentials.
+    - **Billplz setup** asks for the API secret key, the X Signature Key and a sandbox switch.
+      - On save, it creates one collection per taman (`POST /api/v3/collections` with the taman name as `title`), unless a collection id is already stored for that taman.
+      - It stores the ids in `settings.collection_ids`, keyed by taman id. A taman added later gets its collection on the next save or from a "Create missing collections" button.
+    - `Payments::Gateway.for(org)` builds the Billplz adapter from this integration. Without one, checkout returns 422 with "Online payment isn't set up for this taman yet. Pay by bank transfer instead."
+    - The page shows the callback URL (`https://<host>/webhooks/payments/billplz`) for reference. Billplz receives it per bill, so nothing needs setting in the Billplz dashboard.
   - **Email sender.** Notification emails go out from the organisation's SMTP sender when configured.
   - **Permissions.** Editing needs `settings: full`.
 
@@ -165,7 +165,7 @@ GateWebhooks::DeliverJob                   # subscribes to GateEvent after_creat
 
 - [ ] **Step 4: Run the specs.** Expected: PASS.
 
-- [ ] **Step 5: Commit:** `git commit -m "Add per-organisation payment, SMS and email integrations"`.
+- [ ] **Step 5: Commit:** `git commit -m "Add per-organisation Billplz and email integrations"`.
 
 ### T13.3 · Gate controller webhook
 
@@ -281,7 +281,7 @@ GateWebhooks::DeliverJob                   # subscribes to GateEvent after_creat
 
 ## Module done when
 
-- [ ] A new company can connect the Fake gateway and Fake SMS from the dashboard alone, and a payment and an OTP go through the configured adapters.
+- [ ] A new company can connect a Billplz sandbox account and its email sender from the dashboard alone, and a sandbox payment settles through its own collection.
 - [ ] Every admin write performed while testing M01–M13 appears in the audit log with a readable label in EN and BM.
 
 ## Progress log

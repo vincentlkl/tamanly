@@ -7,7 +7,7 @@
 **Read first:**
 - `../README.md` (Global Constraints)
 - `../decisions.md` (ADR-001, 007, 008, 009)
-- `../contracts.md` (§9, §12, §15)
+- `../contracts.md` (§9, §12, §14)
 
 ## Scope
 
@@ -33,7 +33,7 @@
 - `Phone.display(e164) → String`
 - `Reference.next!(kind, scope:) → String`
 - `SeedKit` (rng, names, phones, plates)
-- The spec helpers in `contracts.md` §15 that need no domain models: `at_demo_clock`, `json_data`, `json_error`
+- The spec helpers in `contracts.md` §14 that need no domain models: `at_demo_clock`, `json_data`, `json_error`
 
 **Consumes:** none.
 
@@ -72,7 +72,8 @@
   gem "rqrcode"
   gem "prawn"
   gem "prawn-table"
-  gem "googleauth"
+  gem "googleauth"   # Firebase: push (M10) and phone sign-in token checks (M01)
+  gem "jwt"          # already pulled in by googleauth; listed because specs sign Firebase test tokens with it
   gem "rack-attack"
   gem "rails-i18n"
   gem "image_processing"
@@ -157,7 +158,7 @@
 - Create: `spec/support/{factory_bot,capybara,time,json,webmock,shoulda,concurrency}.rb`
 - Create: `spec/support/time_spec.rb`
 
-**Interfaces produced:** `at_demo_clock`, `DEMO_NOW`, `json_data`, `json_error` (contracts §15).
+**Interfaces produced:** `at_demo_clock`, `DEMO_NOW`, `json_data`, `json_error` (contracts §14).
 
 - [ ] **Step 1: Load the support files.**
   - In `spec/rails_helper.rb`, uncomment the support loader: `Rails.root.glob("spec/support/**/*.rb").sort.each { |f| require f }`.

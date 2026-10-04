@@ -171,7 +171,7 @@ Notifier.deliver(event_key, record:, to: nil, params: {})
 ```
 
 - It always writes an in-app `Notification` (the notification center) unless the event is `inbox: false`.
-- Push, email and SMS are queued per channel according to the catalog defaults and the user's preferences. Mandatory events ignore the preference opt-out.
+- Push and email are queued per channel according to the catalog defaults and the user's preferences. Mandatory events ignore the preference opt-out.
 - Recipients are resolved **at send time** from active occupancies and staff assignments (Review Focus 4).
 - Callers must call it after commit: use `after_commit` or call it outside the transaction.
 
@@ -196,15 +196,19 @@ end
 # Includers: Invoice (M06), PermitCharge (M05: deposit and processing fee), BookingCharge (M07)
 
 Payments::Checkout.start(payables:, user:, method:, idempotency_key:)
-# method: "fpx" | "card" | "duitnow_qr" | "bank_transfer"
+# method: "online" (Billplz payment page: the payer picks FPX, card or e-wallet there) | "bank_transfer" (slip upload)
+# Staff record "cash" and "cheque" payments through Payments::RecordManual (M06 T06.5), not through checkout.
+# The amount charged always equals the sum of the payables' dues. Gateway fees are absorbed, never added (ADR-011a).
 # => Payments::CheckoutResult(payment:, redirect_url: String | nil, instructions: Hash | nil)
 
-Payments::Gateway               # adapter interface, one class per provider
+Payments::Gateway               # adapter interface: Payments::Gateways::Billplz in production, Payments::Gateways::Fake in dev/test
   #create_checkout(payment) => { provider_ref:, redirect_url: }
-  #verify_webhook!(request) => Payments::GatewayEvent(provider_ref:, status: :succeeded | :failed, amount_cents:, raw:)
+  #verify_webhook!(request) => Payments::GatewayEvent | nil (nil = not a payment result; answer 200 and ignore)
   # raises Payments::InvalidSignature
+  #fetch(provider_ref) / #cancel(provider_ref)  # used by the pending-payment poller (M06 T06.4)
 
-Payments::GatewayEvent = Data.define(:provider_ref, :status, :amount_cents, :raw)
+Payments::GatewayEvent = Data.define(:event_id, :provider_ref, :status, :amount_cents, :raw)
+# event_id: the dedupe key stored in payment_events; Billplz has none, so it is "#{bill_id}:#{state}"
 Payments::Settle.call(payment, event:)  # idempotent; allocates to payables, marks paid, issues receipt, notifies
 ```
 
@@ -278,11 +282,11 @@ Owner: **M11**
 | HTTP | `code` |
 |---|---|
 | 400 | `bad_request` |
-| 401 | `unauthorized`, `token_expired` |
+| 401 | `unauthorized`, `token_expired`, `phone_unverified` (Firebase ID token invalid or expired) |
 | 403 | `forbidden`, `scope_missing` (sub-tenant without the scope) |
 | 404 | `not_found` |
 | 409 | `conflict`, `slot_taken`, `idempotency_conflict`, `invalid_transition` |
-| 422 | `validation_failed`, `unit_required`, `otp_invalid`, `otp_expired` |
+| 422 | `validation_failed`, `unit_required` |
 | 426 | `upgrade_required` |
 | 429 | `rate_limited` |
 | 502 | `payment_provider_error` |
@@ -327,44 +331,45 @@ Owner: **M10 T10.4.** Rows are added by the module that fires them.
 
 **Recipient terms.** "Occupants" means everyone with an active occupancy on the unit who holds the scope named in brackets (owners and tenants hold all scopes). "Staff (module)" means staff with at least `view` on that module key for the record's taman.
 
-| Event key | Fired by | Recipients | Push | Email | SMS | Mandatory |
-|---|---|---|:-:|:-:|:-:|:-:|
-| `visitor.arrived` | M04 | The pass creator, plus occupants [visitor_passes] | ✓ | | | |
-| `visitor.walkin_request` | M04 | Occupants [visitor_passes] | ✓ (high priority, 60 s TTL) | | | ✓ |
-| `visitor.overstayed` | M04 | The pass creator | ✓ | | | |
-| `occupancy.invited` | M03 | The invitee (by phone, SMS when not yet a user) | ✓ | | ✓ | ✓ |
-| `occupancy.invite_accepted` | M03 | The inviter | ✓ | | | |
-| `occupancy.link_approved` | M03 | The requester | ✓ | | ✓ | ✓ |
-| `occupancy.link_rejected` | M03 | The requester | ✓ | | | ✓ |
-| `invoice.issued` | M06 | Occupants [bills_view] | ✓ | ✓ | | |
-| `invoice.due_soon` | M06 | Occupants [bills_view] | ✓ | ✓ | | |
-| `invoice.overdue` | M06 | Occupants [bills_view] | ✓ | ✓ | ✓ | |
-| `payment.succeeded` | M06 | The payer, plus the unit owner | ✓ | ✓ | | ✓ |
-| `payment.failed` | M06 | The payer | ✓ | | | ✓ |
-| `payment.receipt_rejected` | M06 | The payer | ✓ | | | ✓ |
-| `payment.receipt_uploaded` | M06 | Staff (billing) | bell | | | |
-| `booking.confirmed` | M07 | The booker | ✓ | | | |
-| `booking.pending_approval` | M07 | Staff (facilities) | bell | | | |
-| `booking.rejected` | M07 | The booker | ✓ | | | ✓ |
-| `booking.cancelled_by_admin` | M07 | The booker | ✓ | | ✓ | ✓ |
-| `booking.reminder` | M07 | The booker | ✓ | | | |
-| `permit.submitted` | M05 | Staff (permit_review) | bell | | | |
-| `permit.status_changed` | M05 | The applicant, plus the unit owner | ✓ | ✓ | | ✓ |
-| `permit.docs_requested` | M05 | The applicant | ✓ | ✓ | | ✓ |
-| `permit.deposit_verified` | M05 | The applicant | ✓ | | | ✓ |
-| `permit.stop_work` | M05 | The applicant, plus staff (contractor_enforcement) | ✓ | | ✓ | ✓ |
-| `permit.violation_notice` | M05 | The applicant | ✓ | ✓ | | ✓ |
-| `permit.refund_paid` | M05 | The applicant | ✓ | ✓ | | ✓ |
-| `announcement.published` | M09 | The audience | ✓ | per announcement | | |
-| `listing.approved` | M08 | The seller | ✓ | | | |
-| `listing.taken_down` | M08 | The seller | ✓ | | | ✓ |
-| `listing.reported` | M08 | Staff (marketplace) | bell | | | |
-| `incident.reported` | M04 | Staff (guard_ops) | bell + push to the security lead | | | |
-| `sos.raised` | M04 | Staff (guard_ops), plus on-duty guards of the taman | ✓ (high priority) | | ✓ | ✓ |
-| `sos.acknowledged` | M04 | The resident who raised it | ✓ (high priority) | | | ✓ |
-| `support.requested` | M13 | Staff (settings) | bell | ✓ (taman email) | | |
+| Event key | Fired by | Recipients | Push | Email | Mandatory |
+|---|---|---|:-:|:-:|:-:|
+| `visitor.arrived` | M04 | The pass creator, plus occupants [visitor_passes] | ✓ | | |
+| `visitor.walkin_request` | M04 | Occupants [visitor_passes] | ✓ (high priority, 60 s TTL) | | ✓ |
+| `visitor.overstayed` | M04 | The pass creator | ✓ | | |
+| `occupancy.invited` | M03 | The invitee, when they already have an account. New people see the invite on first sign-in with that phone; the inviter shares it by WhatsApp link (M03 T03.3) | ✓ | | ✓ |
+| `occupancy.invite_accepted` | M03 | The inviter | ✓ | | |
+| `occupancy.link_approved` | M03 | The requester | ✓ | | ✓ |
+| `occupancy.link_rejected` | M03 | The requester | ✓ | | ✓ |
+| `invoice.issued` | M06 | Occupants [bills_view] | ✓ | ✓ | |
+| `invoice.due_soon` | M06 | Occupants [bills_view] | ✓ | ✓ | |
+| `invoice.overdue` | M06 | Occupants [bills_view] | ✓ | ✓ | |
+| `payment.succeeded` | M06 | The payer, plus the unit owner | ✓ | ✓ | ✓ |
+| `payment.failed` | M06 | The payer | ✓ | | ✓ |
+| `payment.receipt_rejected` | M06 | The payer | ✓ | | ✓ |
+| `payment.receipt_uploaded` | M06 | Staff (billing) | bell | | |
+| `booking.confirmed` | M07 | The booker | ✓ | | |
+| `booking.pending_approval` | M07 | Staff (facilities) | bell | | |
+| `booking.rejected` | M07 | The booker | ✓ | | ✓ |
+| `booking.cancelled_by_admin` | M07 | The booker | ✓ | | ✓ |
+| `booking.reminder` | M07 | The booker | ✓ | | |
+| `permit.submitted` | M05 | Staff (permit_review) | bell | | |
+| `permit.status_changed` | M05 | The applicant, plus the unit owner | ✓ | ✓ | ✓ |
+| `permit.docs_requested` | M05 | The applicant | ✓ | ✓ | ✓ |
+| `permit.deposit_verified` | M05 | The applicant | ✓ | | ✓ |
+| `permit.stop_work` | M05 | The applicant, plus staff (contractor_enforcement) | ✓ | | ✓ |
+| `permit.violation_notice` | M05 | The applicant | ✓ | ✓ | ✓ |
+| `permit.refund_paid` | M05 | The applicant | ✓ | ✓ | ✓ |
+| `announcement.published` | M09 | The audience | ✓ | per announcement | |
+| `listing.approved` | M08 | The seller | ✓ | | |
+| `listing.taken_down` | M08 | The seller | ✓ | | ✓ |
+| `listing.reported` | M08 | Staff (marketplace) | bell | | |
+| `incident.reported` | M04 | Staff (guard_ops) | bell + push to the security lead | | |
+| `sos.raised` | M04 | Staff (guard_ops), plus on-duty guards of the taman | ✓ (high priority) | | ✓ |
+| `sos.acknowledged` | M04 | The resident who raised it | ✓ (high priority) | | ✓ |
+| `support.requested` | M13 | Staff (settings) | bell | ✓ (taman email) | |
 
 **Column meanings**
+- There is no SMS channel (ADR-012). Phone sign-in codes are sent by Firebase, not by this app.
 - **bell:** the in-app notification for staff, shown in the dashboard bell (M02) and on mobile for staff (ADR-021).
 - **Mandatory:** the user can't switch the event off. The preferences screen shows it as locked, with the reason.
 
@@ -389,9 +394,9 @@ Owner: **M10 T10.4.** Rows are added by the module that fires them.
   - the same unit counts, names, statuses and amounts.
 - Demo logins are printed at the end of seeding:
   - staff `meiling@lestarifm.my` / `password1234`;
-  - resident phone `+60123450001`, whose OTP in development is always `123456`.
+  - resident phone `+60123450001`. It is registered in the Firebase console as a test phone number with code `123456`, so no SMS is sent (M11 T11.2).
 
-## 14. Admin registry: sidebar counts, ⌘K search, worklist
+## 13. Admin registry: sidebar counts, ⌘K search, worklist
 
 Owner: **M02 T02.2.** Modules register in `config/initializers/admin_<module>.rb` inside `Rails.application.config.to_prepare`.
 
@@ -417,7 +422,7 @@ Admin::WorkItem = Data.define(:title, :detail, :path, :tone, :due_at)   # tone: 
 
 The registry only calls blocks for modules where the user has `view` permission. Pass the key as `module_key:` when it differs from the nav group.
 
-## 15. Shared spec helpers
+## 14. Shared spec helpers
 
 Owner: **M00 T00.2** and **M01**
 

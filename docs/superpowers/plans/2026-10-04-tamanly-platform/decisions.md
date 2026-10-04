@@ -33,7 +33,7 @@ Each record gives the choice, the reason, and what was turned down. Change a dec
 |---|---|---|
 | Management staff | `/admin` | Email + password (Rails 8 authentication generator), `sessions` table, cookie session |
 | Management staff | mobile | `POST /api/v1/auth/password` returns API tokens |
-| Residents, owners, sub-tenants, guards | mobile | Phone + 6-digit SMS OTP returns API tokens |
+| Residents, owners, sub-tenants, guards | mobile | Firebase phone sign-in in the app. Rails verifies the Firebase ID token (`POST /api/v1/auth/firebase`) and issues its own API tokens |
 | Guards | `/security` on a paired guardhouse device | Station device cookie, then guard picks their name and enters a 4-digit PIN |
 
 API tokens:
@@ -56,7 +56,8 @@ API tokens:
 
 - **Decision:** Send one FCM HTTP v1 call per device. APNs is reached through FCM, so we keep one credential set, one payload builder and one error handler.
   - Auth uses a Google service account through `googleauth`, and the access token is cached for 50 minutes.
-  - Delivery happens in `Push::DeliverJob` on Solid Queue.
+  - Delivery happens in `Notifications::PushJob` on Solid Queue.
+  - The Firebase projects are created and owned by us: one for staging, one for production. The same project also runs phone sign-in (ADR-012).
 - **Why:**
   - One code path for both platforms.
   - FCM returns `UNREGISTERED` for dead tokens, which lets us clean them up.
@@ -96,19 +97,53 @@ API tokens:
 ## ADR-011 · Payment gateway behind an adapter
 
 - **Decision:** `Payments::Gateway` is an interface (`contracts.md` §6).
-  - M06 ships `Payments::Gateways::Fake` for development and tests, plus one real adapter.
+  - M06 ships `Payments::Gateways::Fake` for development and tests, plus the Billplz adapter (ADR-011a).
   - Bank-transfer receipts are a payment method too: the resident uploads a slip and staff verify it.
   - Deposit refunds are paid out by the company's bank (IBG). The app records the payout reference rather than calling the gateway.
-- **Open:** which gateway. Requirements are FPX, cards, DuitNow QR, signed webhooks, and a sandbox.
-  - Candidates: Billplz, iPay88, Razer Merchant Services, Stripe (FPX + cards).
-  - Decide before M06 T06.4. Record it as ADR-011a.
 
-## ADR-012 · SMS and email behind adapters
+## ADR-011a · Billplz is the payment gateway (decided 2026-10-04)
 
-- **Decision:**
-  - `Sms.deliver(to:, body:)` is backed by an adapter class. The adapter is chosen from the integration settings in M13, and a `Sms::Fake` adapter is used in development and tests.
-  - Email is Action Mailer over SMTP, with per-organisation sender settings (M13).
-- **Open:** which SMS provider. It needs a Malaysian sender ID, delivery receipts and an OTP template. Decide before M01 T01.4 goes to production. Development uses `Sms::Fake`.
+- **Decision:** Online payments go through Billplz API v3.
+  - Hosts:
+    - production: `https://www.billplz.com/api/v3`
+    - sandbox: `https://www.billplz-sandbox.com/api/v3`
+  - Auth is HTTP Basic, with the account's API secret key as the username.
+  - **Accounts:** each management company connects its own Billplz account in Settings → Integrations (M13). Each taman gets its own Billplz collection, so settlements and reports stay per taman.
+  - **One payment, one bill.** `POST /bills` with:
+    - `collection_id`
+    - `email` or `mobile`
+    - `name`
+    - `amount` in sen
+    - `description`
+    - `callback_url`
+    - `redirect_url`
+    - `reference_1_label: "Payment"` and `reference_1: <PAY-reference>`
+
+    The bill `id` becomes `payments.provider_ref`. The bill `url` is where the app sends the resident, and the payer picks FPX, card or e-wallet on the Billplz page.
+  - **Confirmation:**
+    - The server-to-server callback is the only thing that settles a payment. Its X-Signature (HMAC-SHA256 with the account's X Signature Key) is checked first.
+    - The signed redirect only shows the result screen.
+    - A poller checks `GET /bills/:id` for payments still pending after 10 minutes, so a missed callback can't strand a payment.
+  - **Deduplication:** Billplz callbacks carry no event id, so `"#{bill_id}:#{state}"` is the dedupe key in `payment_events`.
+  - **Gateway fees are absorbed, never charged to residents.** The amount on the Billplz bill always equals the bill or deposit being paid.
+    - Billplz takes its fee from each settlement.
+    - Payments and reconciliation record the gross amount the resident paid.
+- **Turned down:** iPay88, Razer Merchant Services, Stripe.
+
+## ADR-012 · No SMS provider: push, email and Firebase phone sign-in (decided 2026-10-04)
+
+- **Decision:** The app sends no SMS of its own.
+  - **Phone sign-in:** Firebase Authentication sends and checks the one-time code inside the mobile app. Rails only verifies the Firebase ID token: the RS256 signature against Google's published certificates, `aud` = project id, `iss` = `https://securetoken.google.com/<project id>`, and expiry. It then reads the verified `phone_number`.
+  - **Notifications:** go out by push and email only (contracts §10). Push is the primary channel.
+  - **Invites to people without the app:** the sender shares a prefilled WhatsApp link (`https://wa.me/<number>?text=...`) from their own phone or browser. No provider is involved. The invite waits on the server until that phone number signs in.
+  - **Broadcasts:** email and push only (M09).
+  - **Email:** Action Mailer over SMTP, with per-organisation sender settings (M13).
+- **Why:** one less provider to contract, configure and monitor. Firebase is already needed for push.
+- **Cost to know:**
+  - Firebase phone sign-in is billed per verification SMS on the Blaze plan.
+  - Turn on Firebase App Check (Play Integrity on Android, App Attest on iOS) before launch, so bots can't run up SMS charges.
+- **Consequence:** the FEATRURES.md line "Broadcast SMS / email / in-app (where configured)" ships without the SMS part. A resident who has neither the app nor an email address receives nothing from the platform.
+- **Turned down:** our own SMS provider for OTP, invites and broadcasts.
 
 ## ADR-013 · Admin UI: Tailwind v4 + ViewComponent, ported from the prototype
 
@@ -181,12 +216,19 @@ API tokens:
   - No staff-only mobile screens exist in the storyboard, so none are built.
 - **Revisit:** when a staff mobile flow is designed.
 
-## Open questions for the business
+## ADR-024 · Keep data for the life of the service (decided 2026-10-04)
 
-These don't block the start; each names the task that needs the answer.
+- **Decision:** No automatic deletion of visitor logs, permit documents or other records while the service runs in Malaysia.
+  - Account deletion on request (M11 T11.2) and personal-data export (M14 T14.2) still ship. The app stores require the first; PDPA access rights require the second.
+  - Each data type gets a retention setting in `Setting`, off by default. A portfolio admin can switch one on later without a code change.
+- **Note:** PDPA 2010's retention principle (section 10) says personal data shouldn't be kept longer than its purpose needs. Worker IC/passport scans are the most sensitive item. Have the privacy notice reviewed before launch, and consider switching on purging for those scans.
 
-1. **Payment gateway provider.** Needed by M06 T06.4.
-2. **SMS provider and sender ID.** Needed before production use of M01 T01.4.
-3. **Firebase project ownership** (company account, not personal). Needed by M10 T10.3.
-4. **Who pays gateway fees** (absorbed by the company or passed to the resident). Needed by M06 T06.4.
-5. **Retention for the visitor log and IC/passport scans** under PDPA. Needed by M14 T14.2. The default in this plan is 12 months for visitor logs, and permit documents purged 6 months after the deposit closes.
+## Resolved business questions
+
+| # | Question | Answer (2026-10-04) | Recorded in |
+|---|---|---|---|
+| 1 | Payment gateway | Billplz | ADR-011a, M06 T06.4, M13 T13.2 |
+| 2 | SMS provider | None: Firebase phone sign-in, push and email | ADR-012, M01 T01.4, M11 T11.2 |
+| 3 | Firebase project owner | Us (staging and production projects) | ADR-006, M10 T10.3, M14 T14.5 |
+| 4 | Who pays gateway fees | Us; residents pay the bill amount only | ADR-011a, M06 T06.4 |
+| 5 | Data retention | Keep for the life of the service in Malaysia | ADR-024, M14 T14.2 |

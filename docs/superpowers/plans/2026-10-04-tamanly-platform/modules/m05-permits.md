@@ -454,7 +454,9 @@ Public: `/p/:token` also renders contractor passes (contractor name, taman, allo
   - **Issuing a notice:**
     - It needs a reason.
     - It creates `NTC-###`.
-    - It fires `permit.violation_notice` or `permit.stop_work`. A stop-work order also sends SMS to the contractor contact phone.
+    - It fires `permit.violation_notice` or `permit.stop_work` to the applicant.
+    - The contractor is told without SMS (ADR-012): an email if the contractor record has one, plus a "Send on WhatsApp" button for staff. The button opens `https://wa.me/<contractor contact phone>?text=<notice text and reference>`.
+    - The guardhouse sees a stop-work order at the next scan.
     - It is audited.
     - A stop-work order immediately makes `Gate::Check` return `stop_work` for that permit.
   - **Lifting a stop-work order** needs `contractor_enforcement: edit` and is audited.

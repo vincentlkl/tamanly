@@ -14,7 +14,7 @@
 
 **Read first:**
 - `../contracts.md` §8 (API conventions)
-- `../decisions.md` ADR-004 and ADR-016
+- `../decisions.md` ADR-004, ADR-012 (Firebase phone sign-in) and ADR-016
 - Review Focus 2 in the README
 
 **Feature coverage:**
@@ -50,8 +50,8 @@
 
 | Method | Path | Purpose | Auth |
 |---|---|---|---|
-| POST | `/api/v1/auth/otp` | Send an OTP to `{ phone }` | none |
-| POST | `/api/v1/auth/otp/verify` | `{ phone, code, device_uid }` → tokens + `me` | none |
+| POST | `/api/v1/auth/firebase` | `{ id_token, device_uid }` → tokens + `me`. The app gets `id_token` from Firebase phone sign-in | none |
+| POST | `/api/v1/auth/dev` | Development and test only: `{ phone, device_uid }` → tokens + `me`. The route doesn't exist outside `Rails.env.local?` | none |
 | POST | `/api/v1/auth/password` | Staff `{ email, password, device_uid }` → tokens + `me` | none |
 | POST | `/api/v1/auth/refresh` | `{ refresh_token }` → new pair | none |
 | DELETE | `/api/v1/auth/session` | Sign out this device (revoke token) | bearer |
@@ -98,7 +98,7 @@ Api::V1::MeSerializer.new(user).as_json
 `render_data(obj, meta: nil)` renders `{ data:, meta: }`.
 
 **Consumes:**
-- `Auth::Otp` and `Auth::Tokens` (M01 T01.4)
+- `Auth::FirebasePhone` and `Auth::Tokens` (M01 T01.4)
 - `Current` (M01 T01.5)
 
 ## Tasks
@@ -171,7 +171,8 @@ Api::V1::MeSerializer.new(user).as_json
 
 **Files:**
 - Create:
-  - `app/controllers/api/v1/auth/otp_controller.rb`
+  - `app/controllers/api/v1/auth/firebase_controller.rb`
+  - `app/controllers/api/v1/auth/dev_controller.rb`
   - `app/controllers/api/v1/auth/passwords_controller.rb`
   - `app/controllers/api/v1/auth/refresh_controller.rb`
   - `app/controllers/api/v1/auth/sessions_controller.rb`
@@ -184,15 +185,13 @@ Api::V1::MeSerializer.new(user).as_json
   - `spec/jobs/accounts/purge_job_spec.rb`
 
 - [ ] **Step 1: Write the failing rswag specs.** Each one documents its request and response schemas. The cases:
-  - `POST /auth/otp`:
-    - a valid phone → 202 `{ data: { resend_in: 30 } }`;
-    - an invalid phone → 422 `validation_failed` with `details.phone`;
-    - a resend within 30 s → 429 `rate_limited` with the `Retry-After` header.
-  - `POST /auth/otp/verify`:
-    - the right code → 200 `{ data: { access_token, refresh_token, expires_in, me } }`;
-    - a wrong code → 422 `otp_invalid`;
-    - an expired code → 422 `otp_expired`.
-    - A new phone gets `me.profile_complete == false` and `modes == []`.
+  - `POST /auth/firebase` (uses `firebase_id_token` from M01's spec helper):
+    - a valid token → 200 `{ data: { access_token, refresh_token, expires_in, me } }`;
+    - an expired, forged or other-project token → 401 `phone_unverified` with "We couldn't confirm your phone number. Try signing in again.";
+    - a non-Malaysian number → 401 `phone_unverified` with "Use a Malaysian mobile number (+60).";
+    - a new phone gets `me.profile_complete == false` and `modes == []`;
+    - a phone that staff already invited (a guard, or an occupant from M03) signs straight into that account.
+  - `POST /auth/dev` issues tokens for any phone in development and test. A routing spec asserts the route is absent when `Rails.env.local?` is false, by reloading routes with the env stubbed.
   - `POST /auth/password`:
     - an active staff member → tokens;
     - a resident (no membership) → 401 `unauthorized` with the message "Use your phone number to sign in.";
@@ -206,7 +205,8 @@ Api::V1::MeSerializer.new(user).as_json
   - `DELETE /me` → 202 and sets `deletion_requested_at`. All tokens are revoked. `Accounts::PurgeJob` runs 30 days later, at `wait_until:`.
 
 - [ ] **Step 2: Write the failing purge job spec.**
-  - The job anonymises the user: `name = "Deleted user"`, phone and email set to `nil`, `status = "disabled"`.
+  - The job anonymises the user: `name = "Deleted user"`, phone, email and `firebase_uid` set to `nil`, `status = "disabled"`.
+  - It deletes the Firebase Authentication user: `POST https://identitytoolkit.googleapis.com/v1/projects/<project_id>/accounts:delete` with `{ localId: firebase_uid }`, authorised with the service account from M10 (`googleauth`, scope `https://www.googleapis.com/auth/cloud-platform`). Stub it with WebMock. A failed call retries; it never blocks the anonymising.
   - It ends the user's occupancies (M03, guarded by `defined?(Occupancy)`).
   - It keeps invoices and payments, because finance records must stay.
   - It does nothing if the request was cancelled. Signing in again within 30 days clears `deletion_requested_at`.
@@ -218,9 +218,7 @@ Api::V1::MeSerializer.new(user).as_json
 
     | Exception | Status | `code` |
     |---|---|---|
-    | `Auth::Otp::Invalid` | 422 | `otp_invalid` |
-    | `Auth::Otp::Expired` | 422 | `otp_expired` |
-    | `Auth::Otp::TooSoon` | 429 | `rate_limited` |
+    | `Auth::FirebasePhone::Invalid` | 401 | `phone_unverified` |
     | `Auth::Tokens::Invalid` | 401 | `unauthorized` |
 
   - The `device_uid` param is required. It comes from `X-Device-Id` when the param is absent.
@@ -374,9 +372,9 @@ Unique index on `[user_id, key]`.
 - Test: `spec/requests/rate_limits_spec.rb`
 
 - [ ] **Step 1: Write failing specs.**
-  - The 6th `POST /api/v1/auth/otp` for one phone within 1 hour gets 429 in the JSON envelope (`rate_limited`) with `Retry-After`.
-  - The 21st OTP request from one IP within 1 hour gets 429.
-  - The 11th `POST /api/v1/auth/otp/verify` for one phone within 10 minutes gets 429.
+  - The 31st `POST /api/v1/auth/firebase` from one IP within 10 minutes gets 429 in the JSON envelope (`rate_limited`) with `Retry-After`.
+  - The 11th `POST /api/v1/auth/password` for one email within 10 minutes gets 429.
+  - Firebase itself limits how often a phone can request a code; App Check (M14 T14.5) blocks scripted requests.
   - An authenticated user's 301st request within 5 minutes gets 429.
   - `/up` and webhooks (`/webhooks/*`) are never throttled.
 
@@ -384,7 +382,7 @@ Unique index on `[user_id, key]`.
 
 - [ ] **Step 3: Configure Rack::Attack.**
   - Its cache store is `Rails.cache` (Solid Cache).
-  - Add a throttle for each case in Step 1. Use the phone number from `JSON.parse(req.body.read)` and rewind the body afterwards.
+  - Add a throttle for each case in Step 1. Read the email from `JSON.parse(req.body.read)` and rewind the body afterwards.
   - The throttled responder returns the JSON envelope.
 
 - [ ] **Step 4: Mount the docs.**
@@ -400,7 +398,7 @@ Unique index on `[user_id, key]`.
 
 ## Module done when
 
-- [ ] The mobile team can sign in against staging with OTP `123456` from the published docs alone.
+- [ ] The mobile team can sign in against staging with a Firebase test phone number (code `123456`, set in the Firebase console) using only the published docs.
 - [ ] Every API error in the codebase uses the envelope. A spec asserts that each `render json:` in `app/controllers/api` goes through `render_data` or `render_error` (grep test).
 - [ ] Review Focus 2's idempotency specs pass.
 
