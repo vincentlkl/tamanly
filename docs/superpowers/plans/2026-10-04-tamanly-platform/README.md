@@ -9,7 +9,7 @@
 - push notifications;
 - the platform console (`/platform`), where Tamanly, as the service provider, runs its subscribing customers.
 
-**Architecture:** One Rails monolith on PostgreSQL. Hotwire (Turbo + Stimulus) and Tailwind render the dashboard and guard console. The mobile app talks to `/api/v1` with bearer tokens. Background work runs on Solid Queue. Push goes through Firebase Cloud Messaging HTTP v1, which reaches both Android and iOS. Live boards use Turbo Streams over Solid Cable. Every record hangs off a taman, and every query goes through `Current` and Pundit scopes, so a management company only ever sees its own tamans. Residents pay straight into each customer's own Billplz account, and Tamanly bills customers separately for its service (ADR-011a, ADR-025).
+**Architecture:** One Rails monolith on PostgreSQL. Hotwire (Turbo + Stimulus) and Tailwind render the dashboard and guard console. The mobile app talks to `/api/v1` with bearer tokens. Background work runs on Solid Queue. Push goes through Firebase Cloud Messaging HTTP v1, which reaches both Android and iOS. Live boards use Turbo Streams over Solid Cable. Property rows hang off a taman and are read through `Current` and `TamanScoped`. Organization rows hang off the management company and have no `taman_id` (ADR-003, ADR-026, `contracts.md` §2). A management company only ever sees its own tamans. Residents pay straight into each customer's own Billplz account, and Tamanly bills customers separately for its service (ADR-011a, ADR-025).
 
 **Tech Stack:** Ruby 3.4+, Rails 8.1+, PostgreSQL 16+, Hotwire, Tailwind CSS v4 (`tailwindcss-rails`), ViewComponent, Pundit, Pagy, Solid Queue / Cache / Cable, Active Storage (S3-compatible), RSpec + FactoryBot + rswag (OpenAPI) + Capybara/Cuprite, Firebase (FCM HTTP v1 push and phone sign-in, via `googleauth`), Billplz (payments), `rqrcode`, Prawn, Rack::Attack, Kamal. No SMS provider (ADR-012).
 
@@ -32,8 +32,10 @@ Every task's requirements implicitly include this section.
 - Business dates and "today" use `Asia/Kuala_Lumpur`. Store timestamps as UTC. API times are ISO 8601 with the `+08:00` offset.
 - Languages are English and Bahasa Melayu (`en`, `ms`). Every user-facing string, email and push template exists in both.
 - A management company sees and edits only its own tamans. A resident sees only units they actively occupy. A sub-tenant gets only the scopes granted: `bills_view`, `bills_pay`, `visitor_passes`, `facility_booking`.
+- `taman_id` goes only on property-owned rows. Organization-owned rows, users, and child rows that inherit a property through a parent do not get one (ADR-026, `contracts.md` §2).
 - Staff roles: `portfolio_admin`, `taman_manager`, `billing_ops`, `security_lead`. Field role: `guard`. Occupant relationships: `owner`, `tenant`, `sub_tenant`.
 - Permit statuses, exactly: Pending Review, Docs requested, Pending Deposit, Approved, Work In Progress, Inspection Scheduled, Completed, Deposit Refunded, Rejected.
+- A column with a fixed set of values is a string-backed Rails enum, `validate: true` (ADR-014). That includes option columns, not only statuses. Arrays, provider-reported channels, custom permit keys, free-text unit kinds, and jsonb payloads stay plain values. Do not add a second inclusion list on an enum column.
 - Primary keys are UUIDs (`gen_random_uuid()`).
 - Phone numbers are stored in E.164 (`+60123456789`).
 - Every admin write records an `AuditEvent`.
@@ -109,20 +111,20 @@ Run `ruby docs/superpowers/plans/2026-10-04-tamanly-platform/progress.rb` after 
 <!-- progress:start -->
 | Module | Status | Owner | Tasks done | Steps done |
 |---|---|---|---|---|
-| [M00 · Foundation](modules/m00-foundation.md) | Not started | — | 0/5 | 0/39 |
-| [M01 · Identity, tenancy & permissions](modules/m01-identity-tenancy.md) | Not started | — | 0/9 | 0/65 |
-| [M02 · Admin shell & UI kit](modules/m02-admin-shell.md) | Not started | — | 0/7 | 0/47 |
-| [M03 · Properties & occupancy](modules/m03-properties.md) | Not started | — | 0/6 | 0/38 |
-| [M04 · Gate & security operations](modules/m04-gate-security.md) | Not started | — | 0/10 | 0/56 |
-| [M05 · Permits & contractors](modules/m05-permits.md) | Not started | — | 0/8 | 0/44 |
-| [M06 · Billing & payments](modules/m06-billing-payments.md) | Not started | — | 0/9 | 0/57 |
-| [M07 · Facilities](modules/m07-facilities.md) | Not started | — | 0/5 | 0/27 |
-| [M08 · Marketplace](modules/m08-marketplace.md) | Not started | — | 0/3 | 0/15 |
-| [M09 · Communications](modules/m09-communications.md) | Not started | — | 0/3 | 0/15 |
+| [M00 · Foundation](modules/m00-foundation.md) | In progress | — | 0/5 | 0/39 |
+| [M01 · Identity, tenancy & permissions](modules/m01-identity-tenancy.md) | In progress | — | 0/9 | 0/65 |
+| [M02 · Admin shell & UI kit](modules/m02-admin-shell.md) | In progress | — | 0/7 | 0/47 |
+| [M03 · Properties & occupancy](modules/m03-properties.md) | In progress | — | 0/6 | 0/38 |
+| [M04 · Gate & security operations](modules/m04-gate-security.md) | In progress | — | 0/10 | 0/56 |
+| [M05 · Permits & contractors](modules/m05-permits.md) | In progress | — | 0/8 | 0/44 |
+| [M06 · Billing & payments](modules/m06-billing-payments.md) | In progress | — | 0/9 | 0/57 |
+| [M07 · Facilities](modules/m07-facilities.md) | In progress | — | 0/5 | 0/27 |
+| [M08 · Marketplace](modules/m08-marketplace.md) | In progress | — | 0/3 | 0/15 |
+| [M09 · Communications](modules/m09-communications.md) | In progress | — | 0/3 | 0/15 |
 | [M10 · Notifications & push](modules/m10-notifications-push.md) | Not started | — | 0/6 | 0/36 |
 | [M11 · API platform](modules/m11-api-platform.md) | Not started | — | 0/5 | 0/33 |
-| [M12 · Analytics & overview](modules/m12-analytics.md) | Not started | — | 0/3 | 0/15 |
-| [M13 · Settings & integrations](modules/m13-settings-integrations.md) | Not started | — | 0/5 | 0/26 |
+| [M12 · Analytics & overview](modules/m12-analytics.md) | In progress | — | 0/3 | 0/15 |
+| [M13 · Settings & integrations](modules/m13-settings-integrations.md) | In progress | — | 0/5 | 0/26 |
 | [M14 · Launch readiness](modules/m14-launch.md) | Not started | — | 0/5 | 0/41 |
 | [M15 · Platform console & subscriptions](modules/m15-platform-console.md) | Not started | — | 0/6 | 0/31 |
 | **Total** | | | **0/95** | **0/585** |

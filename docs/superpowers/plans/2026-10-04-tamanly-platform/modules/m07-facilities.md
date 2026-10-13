@@ -1,6 +1,6 @@
 # M07 · Facilities
 
-**Status:** Not started · **Owner:** — · **Wave:** 3 · **Depends on:** M03, M10, M06 (Payable, Escrow). Also M02 and M11.
+**Status:** In progress · **Owner:** — · **Wave:** 3 · **Depends on:** M03, M10, M06 (Payable, Escrow). Also M02 and M11.
 
 **Goal:** Residents browse bookable facilities, pick free slots, pay any fee or deposit, and get a reminder before their booking. Management configures the catalog and rules, approves or overrides bookings, and sees utilization. The database guarantees that no slot is ever double-booked.
 
@@ -42,7 +42,7 @@
 | `kind` | `hall` / `court` / `bbq` / `pool` / `gym` / `room` / `other` |
 | `capacity` | |
 | `bookable` | Boolean. Pool and gym are false: listed only |
-| `rate_cents`, `rate_unit` | `rate_unit` is `per_hour` or `per_booking` |
+| `rate_cents`, `rate_unit` | `rate_unit` is `per_hour` / `per_booking` (enum, ADR-014) |
 | `deposit_cents` | |
 | `requires_approval` | Boolean |
 | `status` | `open` / `closed` |
@@ -391,3 +391,4 @@ Every endpoint needs `X-Unit-Id`. Booking and cancelling also need the `facility
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Catalog, rules, bookings, and utilization pages return 200. Seeded 15 facilities and 30 bookings. No gist overlap constraint; the Ruby slot check covers staff override. No booking API or reminder job. |

@@ -1,6 +1,6 @@
 # M01 · Identity, tenancy & permissions
 
-**Status:** Not started · **Owner:** — · **Wave:** 1 · **Depends on:** M00
+**Status:** In progress · **Owner:** — · **Wave:** 1 · **Depends on:** M00
 
 **Goal:** Build who someone is, which tamans they may touch, and what they may do there. This covers companies, users, staff sign-in, Firebase phone sign-in, API tokens, the permission matrix and the audit trail, plus the Users and Roles admin pages.
 
@@ -177,6 +177,10 @@ Admin::BaseController               # authenticated, sets Current, includes Pund
     def taman_ids = @taman_ids ||= (all_tamans? ? organization.tamans.ids : staff_taman_assignments.pluck(:taman_id))
     def covers?(taman_id) = taman_ids.include?(taman_id)
   end
+
+  # on the generated User (ADR-014)
+  enum :locale, { en: "en", ms: "ms" }, default: "en", validate: true
+  enum :status, { active: "active", invited: "invited", disabled: "disabled" }, default: "active", validate: true
   ```
 
 - [ ] **Step 6: Build the sign-in view.**
@@ -720,3 +724,4 @@ The rest of the page:
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Devise staff sign-in, users, roles, Current, and audit exist. Company SSO and Firebase phone sign-in were not built. |

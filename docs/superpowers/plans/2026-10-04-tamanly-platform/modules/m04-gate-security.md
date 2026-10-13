@@ -1,6 +1,6 @@
 # M04 · Gate & security operations
 
-**Status:** Not started · **Owner:** — · **Wave:** 3 · **Depends on:** M03, M10. M02 for the admin pages and M11 for the API.
+**Status:** In progress · **Owner:** — · **Wave:** 3 · **Depends on:** M03, M10. M02 for the admin pages and M11 for the API.
 
 **Goal:** Cover the guardhouse end to end:
 - Residents pre-register visitors and share a QR pass.
@@ -714,3 +714,4 @@ Pass::Code.generate(taman)  / Pass::Code.normalize(str) # Crockford base32, 6 ch
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Visitor registry, roster, and incidents pages exist. The guard console was not built. |

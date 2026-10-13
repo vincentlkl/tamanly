@@ -31,7 +31,7 @@
 
 | Table | Columns | Notes |
 |---|---|---|
-| `devices` | `user_id`, `device_uid`, `platform` (`ios`/`android`), `fcm_token`, `app_version`, `os_version`, `locale`, `last_seen_at` | Unique `device_uid`. Unique `fcm_token`, partial, not null |
+| `devices` | `user_id`, `device_uid`, `platform` (`ios`/`android`), `fcm_token`, `app_version`, `os_version`, `locale` (`en`/`ms`), `last_seen_at` | Unique `device_uid`. Unique `fcm_token`, partial, not null. `platform` and `locale` are enums (ADR-014) |
 | `notifications` | `user_id`, `event_key`, `title`, `body`, `deep_link`, `admin_path`, `record_type`, `record_id`, `taman_id`, `data` (jsonb), `read_at`, `created_at` | Index `[user_id, created_at desc]`. Partial index `[user_id] WHERE read_at IS NULL` |
 | `notification_deliveries` | `notification_id`, `channel` (`push`/`email`), `device_id`, `status` (`queued`/`sent`/`failed`/`skipped`), `error`, `attempts`, `sent_at` | Index `[notification_id]` |
 | `notification_preferences` | `user_id`, `category`, `push`, `email` (booleans) | Unique `[user_id, category]`. A missing row uses the catalog defaults |

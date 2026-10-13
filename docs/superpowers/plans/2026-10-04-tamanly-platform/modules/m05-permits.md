@@ -1,6 +1,6 @@
 # M05 · Permits & contractors
 
-**Status:** Not started · **Owner:** — · **Wave:** 4 · **Depends on:** M04 (Gate::Check, gate events, guard console), M06 (Payable, Checkout, Escrow, slip verification), M10, M02, M11
+**Status:** In progress · **Owner:** — · **Wave:** 4 · **Depends on:** M04 (Gate::Check, gate events, guard console), M06 (Payable, Checkout, Escrow, slip verification), M10, M02, M11
 
 **Goal:** Cover the full Malaysian renovation-permit lifecycle:
 - An owner applies by category with documents.
@@ -583,3 +583,4 @@ Public: `/p/:token` also renders contractor passes (contractor name, taman, allo
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Permit admin pages exist. Guard-console verification and the resident API were not built. |

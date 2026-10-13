@@ -1,6 +1,6 @@
 # M06 · Billing & payments
 
-**Status:** Not started · **Owner:** — · **Wave:** 3 · **Depends on:** M03 and M10. Also M02 (admin) and M11 (API).
+**Status:** In progress · **Owner:** — · **Wave:** 3 · **Depends on:** M03 and M10. Also M02 (admin) and M11 (API).
 
 **Goal:** Money flows that are never ambiguous:
 - Management creates, schedules and bulk-imports invoices.
@@ -81,7 +81,7 @@ Constraints and indexes:
 | Column | Notes |
 |---|---|
 | `reference` | |
-| `taman_id`, `name`, `category` | |
+| `taman_id`, `name`, `category` | `category` uses the invoice category enum (ADR-014) |
 | `target` | `all_units` / `blocks` / `units` |
 | `target_ids` | `uuid[]` |
 | `amount_mode` | `flat` / `per_sqft` / `unit_fee` |
@@ -155,7 +155,7 @@ Receipts carry an attached `pdf`.
 | Column | Default |
 |---|---|
 | `grace_days` | 7 |
-| `late_fee_kind` | `percent` (or `flat`) |
+| `late_fee_kind` | `percent` / `flat` (enum, ADR-014) |
 | `late_fee_rate_bp` | 1000, which is 10.00% |
 | `late_fee_flat_cents` | |
 | `late_fee_cap_cents` | |
@@ -170,7 +170,7 @@ Bank details for manual transfers come from the taman's payout account, not from
 |---|---|
 | `organization_id` | |
 | `label` | e.g. "Damai Jaya MC · sinking fund" |
-| `provider` | `billplz`, or `fake` in development and test |
+| `provider` | `billplz` / `fake` (enum, ADR-014). `fake` is for development and test |
 | `credentials` | Encrypted JSON: `api_key` and `x_signature_key` |
 | `sandbox` | Boolean |
 | `bank_name`, `bank_account_name`, `bank_account_no` | Shown to residents for manual transfers |
@@ -951,3 +951,4 @@ This task creates `payout_accounts` and `payout_routes`, so payments can be rout
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Billing admin pages exist. Billplz keys stay in config. The Fake gateway is the only gateway. |

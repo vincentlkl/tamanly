@@ -1,6 +1,6 @@
 # M08 · Marketplace
 
-**Status:** Not started · **Owner:** — · **Wave:** 3 · **Depends on:** M03, M10. Also M02 and M11.
+**Status:** In progress · **Owner:** — · **Wave:** 3 · **Depends on:** M03, M10. Also M02 and M11.
 
 **Goal:** Residents buy, sell and offer services inside their own taman. Management moderates listings and reports and sets the category rules.
 
@@ -229,3 +229,4 @@ All require `X-Unit-Id`. Listings are visible only within the unit's taman.
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Listings, reports, and policy pages return 200. Seeded 22 listings, 6 categories, and 7 reports. No resident API and no auto-hide job. |

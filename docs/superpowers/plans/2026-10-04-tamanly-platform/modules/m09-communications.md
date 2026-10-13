@@ -1,6 +1,6 @@
 # M09 · Communications
 
-**Status:** Not started · **Owner:** — · **Wave:** 3 · **Depends on:** M03 and M10. Also M02 and M11.
+**Status:** In progress · **Owner:** — · **Wave:** 3 · **Depends on:** M03 and M10. Also M02 and M11.
 
 **Goal:** Management publishes announcements to a whole taman or to chosen blocks and units, and sends email or push broadcasts from a bilingual template library. Residents see the announcements in a home feed, together with alerts that need their attention.
 
@@ -269,3 +269,4 @@ Feed::Registry.alert(key) { |occupancy| [Feed::Alert(title:, body:, deep_link:, 
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Announcements, broadcasts, and templates pages return 200. Seeded 12, 9, and 9 rows. SMS is copy only. No feed API and no Notifier. |

@@ -40,17 +40,31 @@ Owner: **M01 T01.5**
 
 ```ruby
 # app/models/concerns/taman_scoped.rb
+# Include only on models with a taman_id column (ADR-026).
 module TamanScoped
   extend ActiveSupport::Concern
   included do
-    belongs_to :taman
+    acts_as_tenant :taman
     scope :in_scope, -> { where(taman_id: Current.taman_ids) }
   end
 end
 ```
 
-- Every tenant-owned model includes `TamanScoped`. Index queries start from `Model.in_scope`, or from a Pundit `policy_scope`, which must call `in_scope`. Never use `Model.all`.
-- Member lookups (`show`, `update`) use `policy_scope(Model).find(params[:id])`. A record from another tenant raises `ActiveRecord::RecordNotFound`, which renders 404.
+The tenant is the Taman. The column is `taman_id`. Do not add it to every table (ADR-026).
+
+| The row belongs to | Column | Examples |
+|---|---|---|
+| One property | `taman_id`, null: false, include `TamanScoped` | units, invoices, permits, bookings, visitor entries |
+| The whole organization, or one property | `taman_id` optional. Null means the whole organization | audit events, blacklist entries, invoice batches, late-fee policies |
+| The management company | `organization_id` only | staff memberships, role permissions, permit types, market categories, market policies, message templates |
+| A parent row | no `taman_id`. Load from an already-scoped parent | occupancies through units, blackout dates through facilities, permit documents through permits |
+| A person, the tenant itself, or the platform | neither column | `users`, `tamans`, `organizations`, `reference_counters`, Active Storage |
+
+- A property-owned model includes `TamanScoped`. Index queries start from `Model.in_scope`, or from a Pundit `policy_scope`, which must call `in_scope`. Never use `Model.all` for a property-owned model.
+- Member lookups (`show`, `update`) use `policy_scope(Model).find(params[:id])`, or `Model.in_scope.find(params[:id])` where no policy exists yet. A record from another property raises `ActiveRecord::RecordNotFound`, which renders 404.
+- Copy `taman_id` onto a child table only when that model is queried on its own. Until then, occupancies scope through the unit (`Occupancy.in_scope` joins `units`).
+- `staff_taman_assignments` and `taman_permission_overrides` store `taman_id` as the property they point at. They do not include `TamanScoped`.
+- `ActsAsTenant` `require_tenant` stays false. Seeds, jobs, and the superadmin list run with no property selected. Admin sets `ActsAsTenant.current_tenant` to one taman per request.
 - `Access.taman_ids_for(user, organization:)` returns the staff member's accessible taman ids:
   - all tamans of the organisation when `staff_membership.all_tamans`;
   - otherwise the assigned tamans.

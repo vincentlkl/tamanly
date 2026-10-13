@@ -23,7 +23,7 @@ Each record gives the choice, the reason, and what was turned down. Change a dec
 
 ## ADR-003 · Row-level multi-tenancy
 
-- **Decision:** Every tenant-owned table has `taman_id`, and through it `organization_id`. Access goes through `Current` plus Pundit scopes (`contracts.md` §2).
+- **Decision:** Every property-owned table has `taman_id`, and through it `organization_id`. Access goes through `Current` plus Pundit scopes (`contracts.md` §2). Which tables are property-owned is ADR-026.
 - **Why:** Residents and multi-property owners hold units across tamans managed by **different** companies. Schema-per-tenant can't express one user spanning companies.
 - **Turned down:** `apartment` / schema-per-tenant, and database-per-tenant.
 
@@ -187,6 +187,67 @@ API tokens:
   - writes the change;
   - records an `AuditEvent`;
   - calls `Notifier`.
+- **Option columns are enums too.** Any other single column whose schema cell names a fixed set is the same shape: `enum :field, { value: "value" }, validate: true`. The stored value and the JSON value stay that snake_case string. Option columns have no transition hash. Do not add a second `inclusion` validation on an enum column.
+- **Already written that way:** `Organization#status`, `Taman#kind`, `StaffMembership#role`, `StaffMembership#status`. T01.2 also adds `User#locale` (`en` / `ms`, default `en`) and `User#status` (`active` / `invited` / `disabled`).
+- **Other option columns** (values are the schema cells; this list is so a quiet column is not left as a plain string):
+
+  | Column | Values |
+  |---|---|
+  | `users.platform_role` | `operator` or null (`validate: { allow_nil: true }`) |
+  | `occupancies.relationship` | `owner` / `tenant` / `sub_tenant` |
+  | `link_requests.relationship` | `owner` / `tenant` |
+  | `directory_entries.category` | `management` / `security` / `maintenance` / `utilities` / `health` / `education` / `worship` / `transport` / `other` |
+  | `stations.kind` | `gate` / `lobby` / `patrol` |
+  | `visitor_passes.kind` | `guest` / `delivery` / `ehailing` / `service` / `walkin` |
+  | `gate_events.kind` | `admit` / `deny` / `exit` / `delivery` / `walkin_request` / `walkin_reply` |
+  | `guard_shifts.shift` | `day` / `night` / `off` |
+  | `incidents.category` | `security` / `safety` / `noise` / `parking` / `damage` / `other` |
+  | `incidents.severity` | `low` / `medium` / `high` |
+  | `permit_documents.state` | `needs_review` / `verified` / `resubmit` |
+  | `permit_workers.id_kind` | `ic` / `passport` |
+  | `permit_charges.kind` | `deposit` / `fee` |
+  | `permit_notices.kind` | `violation_notice` / `stop_work` |
+  | `blacklist_entries.kind` | `company` / `person` / `vehicle` |
+  | `inspections.stage` | `pre` / `post` |
+  | `inspections.result` | `pass` / `issues` |
+  | `refund_decisions.outcome` | `full` / `partial` / `forfeit` |
+  | `invoices.category`, `invoice_schedules.category` | `maintenance` / `sinking_fund` / `maintenance_sinking` / `insurance` / `extra` / `late_fee` / `other` |
+  | `invoice_schedules.target` | `all_units` / `blocks` / `units` |
+  | `invoice_schedules.amount_mode` | `flat` / `per_sqft` / `unit_fee` |
+  | `invoice_schedules.frequency` | `monthly` / `quarterly` / `yearly` |
+  | `invoice_batches.source` | `bulk_paste` / `bulk_csv` / `schedule` |
+  | `payments.method` | `online` / `bank_transfer` / `cash` / `cheque` |
+  | `billing_settings.late_fee_kind` | `percent` / `flat` |
+  | `payout_accounts.provider` | `billplz` / `fake` |
+  | `payout_routes.purpose` | `default` / `sinking_fund` / `deposits` |
+  | `escrow_entries.kind` | `collected` / `deduction` / `refund` / `forfeit` |
+  | `facilities.kind` | `hall` / `court` / `bbq` / `pool` / `gym` / `room` / `other` |
+  | `facilities.rate_unit` | `per_hour` / `per_booking` |
+  | `listings.price_kind` | `fixed` / `free` / `ask` |
+  | `listing_reports.reason` | `scam` / `prohibited` / `offensive` / `wrong_category` / `other` |
+  | `announcements.audience`, `broadcasts.audience` | `everyone` / `owners` / `tenants` / `blocks` / `units` |
+  | `message_templates.channel`, `broadcasts.channel` | `email` / `push` |
+  | `message_templates.category` | `billing` / `security` / `facilities` / `general` |
+  | `devices.platform` | `ios` / `android` |
+  | `devices.locale` | `en` / `ms` |
+  | `notification_deliveries.channel` | `push` / `email` |
+  | `notification_preferences.category` | `visitors` / `bills` / `bookings` / `permits` / `announcements` / `marketplace` / `account` |
+  | `integrations.kind` | `email` / `gate_webhook` |
+  | `platform_invoices.paid_by_method` | `online` / `bank_transfer` |
+
+  Status columns in those same tables stay enums under the first bullet. Every status cell in the module schemas is included.
+- **Not a Rails enum:**
+  - `text[]` of a fixed set. Keep the array and check each element against one frozen constant: occupancy `scopes` (`bills_view`, `bills_pay`, `visitor_passes`, `facility_booking`), announcement `channels` (`in_app`, `push`, `email`), `billing_settings.late_fee_categories`, `gate_webhooks.events`.
+  - `payments.channel` — whatever Billplz reports (for example `FPX`).
+  - `permit_types.key` — the named keys plus custom keys.
+  - `units.kind` — free text ("Double-storey terrace", "Condo 3R2B").
+  - Kinds stored inside jsonb (`platform_invoices.lines`, inspection checklist, refund deductions).
+  - `integrations.provider`, audit `action`, and deny reasons that allow free text.
+  - Cells with no value list: `walkins.purpose`, `bookings.purpose`, `gate_webhook_deliveries.status`.
+  - `role_permissions.level` — integer 0–3.
+  - Invoice status — computed, never stored.
+  - `me.modes` (`resident`, `guard`, `staff`) — derived. The app may use a Dart enum. There is no column.
+  - List filters `upcoming` / `past` and `open` / `paid` — query params. They are not the stored status enum.
 - **Turned down:** `aasm` / `statesman`. A hash and one service is less to learn and easier to test.
 
 ## ADR-015 · Search with Postgres
@@ -268,6 +329,20 @@ API tokens:
 - **Suspension:**
   - A suspended customer's staff can sign in and pay their Tamanly invoice, but every other admin write is blocked behind a banner.
   - Residents and guards are never cut off, because a guardhouse and a resident's bills shouldn't stop over a supplier dispute.
+
+## ADR-026 · `taman_id` only on property-owned rows (decided 2026-10-05)
+
+Supersedes the reading of ADR-003 that every table needs a tenant column.
+
+- **Decision:** The tenant is the Taman. The column is `taman_id`. Add it only where the row belongs to one property. The table is in `contracts.md` §2.
+  - Property-owned tables have `taman_id` null: false and include `TamanScoped`.
+  - Organization-owned tables have `organization_id` and no `taman_id`.
+  - A null `taman_id` on an otherwise property-aware table means the row covers the whole organization.
+  - A child row inherits the property through its parent and has no `taman_id` of its own. Load it from an already-scoped parent. Copy the column onto the child only when that model is queried on its own.
+  - Link tables store `taman_id` as the property they point at and do not include `TamanScoped`.
+  - `users` have no tenant column. One person can be staff of a company, a resident of a unit, and a Tamanly operator.
+- **Why:** A column on every table would stamp a property id onto people, company-wide settings, and the tenant row itself. Isolation is the scope: `TamanScoped` on property models, and children loaded from a scoped parent. `require_tenant` stays false so seeds, jobs, and the superadmin list can run with no property selected.
+- **Turned down:** a `tenant_id` (or `taman_id`) on every table, including `users` and organization settings.
 
 ## Resolved business questions
 

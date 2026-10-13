@@ -1,6 +1,6 @@
 # M12 · Analytics & overview
 
-**Status:** Not started · **Owner:** — · **Wave:** 4 · **Depends on:** M03–M09 for the data, M02 for the UI
+**Status:** In progress · **Owner:** — · **Wave:** 4 · **Depends on:** M03–M09 for the data, M02 for the UI
 
 **Goal:** Give the figures management and JMB committees ask for, per taman and across the portfolio. The figures are occupancy, collections rate, visitor volume, facility usage, active renovation permits and deposit escrow balances. They are fast because history comes from nightly snapshots and only today is computed live.
 
@@ -165,3 +165,4 @@ Read-only queries on these tables:
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Analytics page is routed. The nightly snapshot job was not part of this pass. |

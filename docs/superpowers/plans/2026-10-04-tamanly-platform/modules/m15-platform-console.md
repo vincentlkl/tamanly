@@ -23,7 +23,7 @@
 
 ## Data model
 
-**`users`**: add `platform_role` (`operator` or null).
+**`users`**: add `platform_role` (`operator` or null). Enum, `validate: { allow_nil: true }` (ADR-014).
 
 **`plans`**
 

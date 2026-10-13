@@ -1,6 +1,6 @@
 # M03 · Properties & occupancy
 
-**Status:** Not started · **Owner:** — · **Wave:** 2 · **Depends on:** M01, M02, M11
+**Status:** In progress · **Owner:** — · **Wave:** 2 · **Depends on:** M01, M02, M11
 
 **Goal:** Model tamans, blocks, units and who occupies them, which decides what every resident can see and who gets notified. This module also delivers:
 - the admin Properties pages;
@@ -470,3 +470,4 @@ Occupancies::InviteMessage.call(occupancy)        # => { text:, share_url: "http
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Tamans, units, and occupants pages exist. The property-switcher API was not built. |

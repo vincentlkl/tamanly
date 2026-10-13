@@ -1,6 +1,6 @@
 # M13 · Settings & integrations
 
-**Status:** Not started · **Owner:** — · **Wave:** 4 · **Depends on:** M01, M03, M06 (payout accounts and routes). The real adapters plug into M10 (email) and M04 (gate webhook).
+**Status:** In progress · **Owner:** — · **Wave:** 4 · **Depends on:** M01, M03, M06 (payout accounts and routes). The real adapters plug into M10 (email) and M04 (gate webhook).
 
 **Goal:** Each company sets up its tamans' profile and branding, connects its own Billplz payout accounts and email sender, optionally sends gate events to boom-gate controllers, and reads a searchable audit log of everything staff did.
 
@@ -297,3 +297,4 @@ GateWebhooks::DeliverJob                   # subscribes to GateEvent after_creat
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Profile, integrations, and audit pages exist. Live Billplz connect and gate webhooks were not built. |

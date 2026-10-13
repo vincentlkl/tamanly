@@ -1,6 +1,6 @@
 # M00 · Foundation
 
-**Status:** Not started · **Owner:** — · **Wave:** 0 · **Depends on:** nothing
+**Status:** In progress · **Owner:** — · **Wave:** 0 · **Depends on:** nothing
 
 **Goal:** Create a Rails app that boots, tests, lints and seeds, with the shared helpers every other module uses: money, phone numbers, reference numbers, the demo clock and spec helpers.
 
@@ -561,3 +561,4 @@ Every later seed file uses these.
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | App boots with Devise, Minitest, Money, and reference numbers. RSpec toolchain and CI were not added. |

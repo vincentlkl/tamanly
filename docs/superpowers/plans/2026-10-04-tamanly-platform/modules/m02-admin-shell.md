@@ -1,6 +1,6 @@
 # M02 · Admin shell & UI kit
 
-**Status:** Not started · **Owner:** — · **Wave:** 1 · **Depends on:** M00. Use M01 for real sign-in; until then, stub `Current` in specs.
+**Status:** In progress · **Owner:** — · **Wave:** 1 · **Depends on:** M00. Use M01 for real sign-in; until then, stub `Current` in specs.
 
 **Goal:** Port the prototype dashboard's frame and building blocks into Rails, so every admin module only writes queries, forms and page content. The frame is the layout, grouped sidebar, scope switcher, bell, ⌘K palette and overview worklist. The building blocks are the index engine, drawer, forms, chips, tiles and charts.
 
@@ -425,3 +425,4 @@ InvoicesColumns = [
 
 | Date | Who | Note |
 |---|---|---|
+| 2026-10-05 | build | Admin layout, sidebar, shared index, and search registry are in use. Drawers are real pages, not ViewComponents. |
