@@ -67,6 +67,12 @@ Endpoints: 7. Update `status` in [../endpoints.yml](../endpoints.yml) as you go.
 - [x] authorization check (unit / scope / ownership)
 - [x] review pass (Opus high)
 
+## Decisions locked
+
+**Slot length:** Whole hours (1-hour minimum). The storyboard F2 shows "1-hour per slot" and hourly slots (7 AM, 8 AM, etc.). The schema stores `hours` as `integer`. `Bookings::Create` calculates hours with `.floor` and validates `ends_at == starts_at + hours.hours`. No migration needed; keep existing schema.
+
+**Per-month limit:** Each unit may book a facility at most `facility.per_month` times per calendar month (calendar month in the Asia/Kuala_Lumpur time zone). `Bookings::Create.monthly_count` queries `.all_month` on the booking start time, respecting the Rails time zone config (Kuala Lumpur).
+
 ## Module done
 - [x] all specs green
 - [x] swagger regenerated (`rails rswag`)

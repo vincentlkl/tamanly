@@ -51,7 +51,6 @@ Permit status order stays the label list in the README. Map the API snake_case s
 |---|---|---|
 | 401 | `token_expired` | One refresh, retry the call once |
 | 401 | `unauthorized` | Sign out |
-| 401 | `phone_unverified` | Stay on the sign-in screen, show `message` |
 | 403 | `forbidden`, `scope_missing` | Show `message`. Hide the action next time via scopes |
 | 404 | `not_found` | Show `message`. Do not show the id |
 | 409 | `conflict`, `slot_taken`, `idempotency_conflict`, `invalid_transition` | Show `message` |
@@ -65,9 +64,11 @@ Permit status order stays the label list in the README. Map the API snake_case s
 
 | Method | Path | Body | Screen |
 |---|---|---|---|
-| POST | `/api/v1/auth/firebase` | `{ id_token, device_uid }` | A2 phone OTP. Returns tokens + `me` |
-| POST | `/api/v1/auth/dev` | `{ phone, device_uid }` | Local and test only. Route absent in production |
-| POST | `/api/v1/auth/password` | `{ email, password, device_uid }` | Staff email sign-in |
+| POST | `/api/v1/auth/dev` | `{ email, device_uid }` | Development only. Route absent in test and production |
+| POST | `/api/v1/auth/password` | `{ email, password, device_uid }` | Email sign-in for everyone (residents, guards, staff). Returns tokens + `me` |
+| POST | `/api/v1/auth/invite/accept` | `{ token, password, device_uid }` | Admin email invite link: set password, returns tokens + `me` |
+| POST | `/api/v1/auth/password/forgot` | `{ email }` | Always 202. Emails a reset link |
+| POST | `/api/v1/auth/password/reset` | `{ token, password }` | Sets password, revokes all sessions |
 | POST | `/api/v1/auth/refresh` | `{ refresh_token }` | Rotation. Returns a new pair. Old refresh dies |
 | DELETE | `/api/v1/auth/session` | | Sign out this device. 204 |
 | GET | `/api/v1/me` | | Profile, `modes`, `properties`, `unread_notifications` |
@@ -101,7 +102,7 @@ Token payload (sign-in and refresh):
 
 `modes`: `resident` if any active occupancy, `guard` if an active guard membership, `staff` if another active staff membership. Empty `modes` and `profile_complete: false` send the user to A3.
 
-Rotation rules the backend enforces (opaque tokens, SHA-256 digests, not JWT):
+Rotation rules the backend enforces (access token is a short-lived JWT; refresh token is opaque, stored as a SHA-256 digest):
 
 - Refresh writes a new row in the same `family_id`, revokes the old row, and the old access token stops working.
 - Presenting a revoked refresh token more than `auth.refresh_reuse_grace_seconds` after rotation revokes the whole family.
@@ -134,7 +135,7 @@ Owner and tenant hold every occupant scope. Sub-tenant `scopes` are a subset of 
 | GET | `/api/v1/link_requests` | A4 status |
 | POST | `/api/v1/link_requests` | A4. Multipart `proof`. Idempotent |
 | GET | `/api/v1/units/:unit_id/sub_tenants` | A6, G2 |
-| POST | `/api/v1/units/:unit_id/sub_tenants` | A6. `{ phone, name, scopes[] }` → invite + `share_url` |
+| POST | `/api/v1/units/:unit_id/sub_tenants` | A6. `{ email, name, scopes[] }` → emailed invite link |
 | PATCH | `/api/v1/units/:unit_id/sub_tenants/:id` | G2 scopes |
 | DELETE | `/api/v1/units/:unit_id/sub_tenants/:id` | Revoke |
 | GET | `/api/v1/directory` | B1. Needs `X-Unit-Id` |
@@ -218,7 +219,7 @@ All need `X-Unit-Id` except the summary, which covers every unit the user may se
 
 `type` is `invoice`, `permit`, or `booking`. `method` is `online` or `bank_transfer`. Bank transfer is multipart with `receipt_slip`. The online response includes the Billplz URL. The gateway returns to `tamanly://payments/<id>`.
 
-Webhook (backend, not called by the app): `POST /webhooks/payments/billplz/:payout_account_id`.
+Webhook (backend, not called by the app), counted as an endpoint in the API plan: `POST /webhooks/payments/billplz/:payout_account_id`.
 
 ## Facilities
 
@@ -272,7 +273,7 @@ These storyboard controls stay in the app or in a human setup. Do not add routes
 | E2 bank grid, DuitNow, card, auto-pay | Billplz hosted page. The app sends `method: online` or `bank_transfer` |
 | G1 photo and masked card row | Letter avatar. Payment row opens receipts |
 | G1 dark mode | Device setting |
-| G3 quiet hours, SMS channel | Device until the preferences payload grows those fields |
+| G3 quiet hours | Device until the preferences payload grows those fields |
 | H0 search | Filter the loaded feed |
 | C5 boom-gate Override | `tel:` of the station |
 | B6 lock-screen push | FCM. Setup is [manual.md](manual.md) |
