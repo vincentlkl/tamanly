@@ -17,12 +17,12 @@ Endpoints: 7. Update `status` in [../endpoints.yml](../endpoints.yml) as you go.
 
 
 ## Module tasks
-- [ ] `PUT /devices/current` (alias `POST /devices` accepted) upserts the same `devices` row via `DeviceRegistrar` (token refresh from FCM `onTokenRefresh`); `DELETE /devices/current` deactivates it
-- [ ] `PushSender` (Firebase Cloud Messaging HTTP v1, service-account OAuth via `googleauth`, creds from Rails credentials; no legacy server key); stubbed in test
-- [ ] Prune invalid tokens on send: FCM `UNREGISTERED` / `INVALID_ARGUMENT` (404/400) → `fcm_token=nil, active=false`
-- [ ] Blast push: admin broadcast (admin dashboard) → `BroadcastPushJob` (ActiveJob, background) targets all active devices with fcm_token for audience (property + role: residents/guards/staff/all, respecting notification_preferences), batches of 500, per-batch job, retries with backoff on 429/5xx, records sent/failed counts on the broadcast
-- [ ] Each push also creates an in-app `notifications` row per user (feeds `GET /notifications`)
-- [ ] Specs: audience filtering, batching, pruning, inactive devices skipped
+- [x] `PUT /devices/current` (alias `POST /devices` accepted) upserts the same `devices` row via `DeviceRegistrar` (token refresh from FCM `onTokenRefresh`); `DELETE /devices/current` deactivates it
+- [x] `PushSender` (Firebase Cloud Messaging HTTP v1, service-account OAuth via `googleauth`, creds from Rails credentials; no legacy server key); stubbed in test
+- [x] Prune invalid tokens on send: FCM `UNREGISTERED` / `INVALID_ARGUMENT` (404/400) → `fcm_token=nil, active=false`
+- [x] Blast push: admin broadcast (admin dashboard) → `BroadcastPushJob` (ActiveJob, background) targets all active devices with fcm_token for audience (property + role: residents/guards/staff/all, respecting notification_preferences), batches of 500, per-batch job, retries with backoff on 429/5xx, records sent/failed counts on the broadcast
+- [x] Each push also creates an in-app `notifications` row per user (feeds `GET /notifications`)
+- [x] Specs: audience filtering, batching, pruning, inactive devices skipped
 
 ## Per-endpoint checklist
 

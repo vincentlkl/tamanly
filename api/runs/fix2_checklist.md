@@ -6,6 +6,6 @@ Runs via runs/drive_fix2.sh in screen 'fix2'. Resume: rerun drive_fix2.sh (finis
 | 2 | bookings.user_id from signed-in user; facility_booking pays own bookings only | done | 10ae91e |
 | 3 | Admin-approved: payment window from approval, notify booker | done | b68f583 |
 | 4 | Deposit-only bookings require online payment | done | 76f5b67 |
-| 5 | FCM PushSender + token pruning, BroadcastPushJob, in-app notifications | pending |  |
+| 5 | FCM PushSender + token pruning, BroadcastPushJob, in-app notifications | done | d22b15a |
 | - | Full rspec + minitest | pending |  |
 | - | Opus medium review + fixes | pending |  |
