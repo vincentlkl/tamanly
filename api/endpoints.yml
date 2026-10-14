@@ -1,0 +1,551 @@
+---
+- id: POST /api/v1/auth/dev
+  method: POST
+  path: "/api/v1/auth/dev"
+  module: A01
+  api_md_line: 69
+  status: reviewed
+  device: optional device{} upsert
+- id: POST /api/v1/auth/password
+  method: POST
+  path: "/api/v1/auth/password"
+  module: A01
+  api_md_line: 70
+  status: reviewed
+  device: optional device{} upsert
+- id: POST /api/v1/auth/refresh
+  method: POST
+  path: "/api/v1/auth/refresh"
+  module: A01
+  api_md_line: 71
+  status: reviewed
+  device: optional device{} upsert
+- id: DELETE /api/v1/auth/session
+  method: DELETE
+  path: "/api/v1/auth/session"
+  module: A01
+  api_md_line: 72
+  status: reviewed
+  device: deactivates device
+- id: GET /api/v1/me
+  method: GET
+  path: "/api/v1/me"
+  module: A01
+  api_md_line: 73
+  status: reviewed
+- id: PATCH /api/v1/me
+  method: PATCH
+  path: "/api/v1/me"
+  module: A01
+  api_md_line: 74
+  status: reviewed
+- id: DELETE /api/v1/me
+  method: DELETE
+  path: "/api/v1/me"
+  module: A01
+  api_md_line: 75
+  status: reviewed
+- id: GET /api/v1/properties
+  method: GET
+  path: "/api/v1/properties"
+  module: A02
+  api_md_line: 129
+  status: reviewed
+- id: GET /api/v1/tamans
+  method: GET
+  path: "/api/v1/tamans?q="
+  module: A02
+  api_md_line: 130
+  status: reviewed
+- id: GET /api/v1/invites
+  method: GET
+  path: "/api/v1/invites"
+  module: A02
+  api_md_line: 131
+  status: reviewed
+- id: POST /api/v1/invites/:id/accept
+  method: POST
+  path: "/api/v1/invites/:id/accept"
+  module: A02
+  api_md_line: 132
+  status: reviewed
+- id: POST /api/v1/invites/:id/decline
+  method: POST
+  path: "/api/v1/invites/:id/decline"
+  module: A02
+  api_md_line: 133
+  status: reviewed
+- id: GET /api/v1/link_requests
+  method: GET
+  path: "/api/v1/link_requests"
+  module: A02
+  api_md_line: 134
+  status: reviewed
+- id: POST /api/v1/link_requests
+  method: POST
+  path: "/api/v1/link_requests"
+  module: A02
+  api_md_line: 135
+  status: reviewed
+- id: GET /api/v1/units/:unit_id/sub_tenants
+  method: GET
+  path: "/api/v1/units/:unit_id/sub_tenants"
+  module: A02
+  api_md_line: 136
+  status: reviewed
+- id: POST /api/v1/units/:unit_id/sub_tenants
+  method: POST
+  path: "/api/v1/units/:unit_id/sub_tenants"
+  module: A02
+  api_md_line: 137
+  status: reviewed
+- id: PATCH /api/v1/units/:unit_id/sub_tenants/:id
+  method: PATCH
+  path: "/api/v1/units/:unit_id/sub_tenants/:id"
+  module: A02
+  api_md_line: 138
+  status: reviewed
+- id: DELETE /api/v1/units/:unit_id/sub_tenants/:id
+  method: DELETE
+  path: "/api/v1/units/:unit_id/sub_tenants/:id"
+  module: A02
+  api_md_line: 139
+  status: reviewed
+- id: GET /api/v1/directory
+  method: GET
+  path: "/api/v1/directory"
+  module: A02
+  api_md_line: 140
+  status: reviewed
+- id: GET /api/v1/feed
+  method: GET
+  path: "/api/v1/feed"
+  module: A03
+  api_md_line: 146
+  status: reviewed
+- id: GET /api/v1/announcements/:id
+  method: GET
+  path: "/api/v1/announcements/:id"
+  module: A03
+  api_md_line: 147
+  status: reviewed
+- id: GET /api/v1/visitor_passes
+  method: GET
+  path: "/api/v1/visitor_passes?status=upcoming|past"
+  module: A04
+  api_md_line: 155
+  status: reviewed
+- id: POST /api/v1/visitor_passes
+  method: POST
+  path: "/api/v1/visitor_passes"
+  module: A04
+  api_md_line: 156
+  status: reviewed
+- id: GET /api/v1/visitor_passes/:id
+  method: GET
+  path: "/api/v1/visitor_passes/:id"
+  module: A04
+  api_md_line: 157
+  status: reviewed
+- id: DELETE /api/v1/visitor_passes/:id
+  method: DELETE
+  path: "/api/v1/visitor_passes/:id"
+  module: A04
+  api_md_line: 158
+  status: reviewed
+- id: POST /api/v1/walkin_requests/:id/reply
+  method: POST
+  path: "/api/v1/walkin_requests/:id/reply"
+  module: A04
+  api_md_line: 159
+  status: reviewed
+- id: GET /api/v1/emergency_contacts
+  method: GET
+  path: "/api/v1/emergency_contacts"
+  module: A04
+  api_md_line: 160
+  status: reviewed
+- id: POST /api/v1/sos
+  method: POST
+  path: "/api/v1/sos"
+  module: A04
+  api_md_line: 161
+  status: reviewed
+- id: GET /api/v1/guard/home
+  method: GET
+  path: "/api/v1/guard/home"
+  module: A05
+  api_md_line: 162
+  status: reviewed
+- id: POST /api/v1/guard/checks
+  method: POST
+  path: "/api/v1/guard/checks"
+  module: A05
+  api_md_line: 163
+  status: reviewed
+- id: POST /api/v1/guard/visitor_passes/:id/admit
+  method: POST
+  path: "/api/v1/guard/visitor_passes/:id/admit"
+  module: A05
+  api_md_line: 164
+  status: reviewed
+- id: POST /api/v1/guard/visitor_passes/:id/deny
+  method: POST
+  path: "/api/v1/guard/visitor_passes/:id/deny"
+  module: A05
+  api_md_line: 165
+  status: reviewed
+- id: POST /api/v1/guard/visitor_passes/:id/check_out
+  method: POST
+  path: "/api/v1/guard/visitor_passes/:id/check_out"
+  module: A05
+  api_md_line: 166
+  status: reviewed
+- id: GET /api/v1/guard/arrivals
+  method: GET
+  path: "/api/v1/guard/arrivals"
+  module: A05
+  api_md_line: 167
+  status: reviewed
+- id: GET /api/v1/guard/gate_events
+  method: GET
+  path: "/api/v1/guard/gate_events"
+  module: A05
+  api_md_line: 168
+  status: reviewed
+- id: GET /api/v1/guard/units
+  method: GET
+  path: "/api/v1/guard/units?q="
+  module: A05
+  api_md_line: 169
+  status: reviewed
+- id: POST /api/v1/guard/units/:id/call
+  method: POST
+  path: "/api/v1/guard/units/:id/call"
+  module: A05
+  api_md_line: 170
+  status: reviewed
+- id: POST /api/v1/guard/walkins
+  method: POST
+  path: "/api/v1/guard/walkins"
+  module: A05
+  api_md_line: 171
+  status: reviewed
+- id: GET /api/v1/guard/walkins/:id
+  method: GET
+  path: "/api/v1/guard/walkins/:id"
+  module: A05
+  api_md_line: 172
+  status: reviewed
+- id: POST /api/v1/guard/deliveries
+  method: POST
+  path: "/api/v1/guard/deliveries"
+  module: A05
+  api_md_line: 173
+  status: reviewed
+- id: POST /api/v1/guard/incidents
+  method: POST
+  path: "/api/v1/guard/incidents"
+  module: A05
+  api_md_line: 174
+  status: reviewed
+- id: POST /api/v1/guard/shift_notes
+  method: POST
+  path: "/api/v1/guard/shift_notes"
+  module: A05
+  api_md_line: 175
+  status: reviewed
+- id: POST /api/v1/guard/sos/:id/acknowledge
+  method: POST
+  path: "/api/v1/guard/sos/:id/acknowledge"
+  module: A05
+  api_md_line: 176
+  status: reviewed
+- id: GET /api/v1/guard/permits/today
+  method: GET
+  path: "/api/v1/guard/permits/today"
+  module: A05
+  api_md_line: 177
+  status: reviewed
+- id: POST /api/v1/guard/permits/:id/admit
+  method: POST
+  path: "/api/v1/guard/permits/:id/admit"
+  module: A05
+  api_md_line: 178
+  status: reviewed
+- id: POST /api/v1/guard/permits/:id/exit
+  method: POST
+  path: "/api/v1/guard/permits/:id/exit"
+  module: A05
+  api_md_line: 179
+  status: reviewed
+- id: GET /api/v1/permit_types
+  method: GET
+  path: "/api/v1/permit_types"
+  module: A06
+  api_md_line: 185
+  status: reviewed
+- id: GET /api/v1/permits
+  method: GET
+  path: "/api/v1/permits"
+  module: A06
+  api_md_line: 186
+  status: reviewed
+- id: GET /api/v1/permits/:id
+  method: GET
+  path: "/api/v1/permits/:id"
+  module: A06
+  api_md_line: 187
+  status: reviewed
+- id: POST /api/v1/permits
+  method: POST
+  path: "/api/v1/permits"
+  module: A06
+  api_md_line: 188
+  status: reviewed
+- id: PATCH /api/v1/permits/:id/documents/:doc_id
+  method: PATCH
+  path: "/api/v1/permits/:id/documents/:doc_id"
+  module: A06
+  api_md_line: 189
+  status: reviewed
+- id: POST /api/v1/permits/:id/withdraw
+  method: POST
+  path: "/api/v1/permits/:id/withdraw"
+  module: A06
+  api_md_line: 190
+  status: reviewed
+- id: GET /api/v1/permits/:id/pass
+  method: GET
+  path: "/api/v1/permits/:id/pass"
+  module: A06
+  api_md_line: 191
+  status: reviewed
+- id: POST /api/v1/permits/:id/completion
+  method: POST
+  path: "/api/v1/permits/:id/completion"
+  module: A06
+  api_md_line: 192
+  status: reviewed
+- id: GET /api/v1/permits/:id/refund
+  method: GET
+  path: "/api/v1/permits/:id/refund"
+  module: A06
+  api_md_line: 193
+  status: reviewed
+- id: POST /api/v1/permits/:id/notices/:notice_id/acknowledge
+  method: POST
+  path: "/api/v1/permits/:id/notices/:notice_id/acknowledge"
+  module: A06
+  api_md_line: 194
+  status: reviewed
+- id: GET /api/v1/billing/summary
+  method: GET
+  path: "/api/v1/billing/summary"
+  module: A07
+  api_md_line: 204
+  status: reviewed
+- id: GET /api/v1/invoices
+  method: GET
+  path: "/api/v1/invoices?status=open|paid"
+  module: A07
+  api_md_line: 205
+  status: reviewed
+- id: GET /api/v1/invoices/:id
+  method: GET
+  path: "/api/v1/invoices/:id"
+  module: A07
+  api_md_line: 206
+  status: reviewed
+- id: POST /api/v1/payments
+  method: POST
+  path: "/api/v1/payments"
+  module: A07
+  api_md_line: 207
+  status: reviewed
+- id: GET /api/v1/payments/:id
+  method: GET
+  path: "/api/v1/payments/:id"
+  module: A07
+  api_md_line: 208
+  status: reviewed
+- id: GET /api/v1/receipts
+  method: GET
+  path: "/api/v1/receipts"
+  module: A07
+  api_md_line: 209
+  status: reviewed
+- id: GET /api/v1/receipts/:id/pdf
+  method: GET
+  path: "/api/v1/receipts/:id/pdf"
+  module: A07
+  api_md_line: 210
+  status: reviewed
+- id: GET /api/v1/billing/transfer_instructions
+  method: GET
+  path: "/api/v1/billing/transfer_instructions?purpose=default|sinking_fund"
+  module: A07
+  api_md_line: 211
+  status: reviewed
+- id: GET /api/v1/facilities
+  method: GET
+  path: "/api/v1/facilities"
+  module: A08
+  api_md_line: 227
+  status: reviewed
+- id: GET /api/v1/facilities/:id
+  method: GET
+  path: "/api/v1/facilities/:id"
+  module: A08
+  api_md_line: 228
+  status: reviewed
+- id: GET /api/v1/facilities/:id/availability
+  method: GET
+  path: "/api/v1/facilities/:id/availability?date=2026-10-10"
+  module: A08
+  api_md_line: 229
+  status: reviewed
+- id: POST /api/v1/bookings
+  method: POST
+  path: "/api/v1/bookings"
+  module: A08
+  api_md_line: 230
+  status: reviewed
+- id: GET /api/v1/bookings
+  method: GET
+  path: "/api/v1/bookings?status=upcoming|past"
+  module: A08
+  api_md_line: 231
+  status: reviewed
+- id: GET /api/v1/bookings/:id
+  method: GET
+  path: "/api/v1/bookings/:id"
+  module: A08
+  api_md_line: 232
+  status: reviewed
+- id: POST /api/v1/bookings/:id/cancel
+  method: POST
+  path: "/api/v1/bookings/:id/cancel"
+  module: A08
+  api_md_line: 233
+  status: reviewed
+- id: GET /api/v1/market/categories
+  method: GET
+  path: "/api/v1/market/categories"
+  module: A09
+  api_md_line: 241
+  status: todo
+- id: GET /api/v1/listings
+  method: GET
+  path: "/api/v1/listings?q=&category_id=&mine=true"
+  module: A09
+  api_md_line: 242
+  status: todo
+- id: GET /api/v1/listings/:id
+  method: GET
+  path: "/api/v1/listings/:id"
+  module: A09
+  api_md_line: 243
+  status: todo
+- id: POST /api/v1/listings
+  method: POST
+  path: "/api/v1/listings"
+  module: A09
+  api_md_line: 244
+  status: todo
+- id: PATCH /api/v1/listings/:id
+  method: PATCH
+  path: "/api/v1/listings/:id"
+  module: A09
+  api_md_line: 245
+  status: todo
+- id: POST /api/v1/listings/:id/sold
+  method: POST
+  path: "/api/v1/listings/:id/sold"
+  module: A09
+  api_md_line: 246
+  status: todo
+- id: DELETE /api/v1/listings/:id
+  method: DELETE
+  path: "/api/v1/listings/:id"
+  module: A09
+  api_md_line: 247
+  status: todo
+- id: POST /api/v1/listings/:id/reports
+  method: POST
+  path: "/api/v1/listings/:id/reports"
+  module: A09
+  api_md_line: 248
+  status: todo
+- id: PUT /api/v1/devices/current
+  method: PUT
+  path: "/api/v1/devices/current"
+  module: A10
+  api_md_line: 254
+  status: todo
+  device: upsert device/fcm_token (POST /devices alias)
+- id: DELETE /api/v1/devices/current
+  method: DELETE
+  path: "/api/v1/devices/current"
+  module: A10
+  api_md_line: 255
+  status: todo
+- id: GET /api/v1/notifications
+  method: GET
+  path: "/api/v1/notifications?unread=true"
+  module: A10
+  api_md_line: 256
+  status: todo
+- id: POST /api/v1/notifications/:id/read
+  method: POST
+  path: "/api/v1/notifications/:id/read"
+  module: A10
+  api_md_line: 257
+  status: todo
+- id: POST /api/v1/notifications/read_all
+  method: POST
+  path: "/api/v1/notifications/read_all"
+  module: A10
+  api_md_line: 258
+  status: todo
+- id: GET /api/v1/notification_preferences
+  method: GET
+  path: "/api/v1/notification_preferences"
+  module: A10
+  api_md_line: 259
+  status: todo
+- id: PUT /api/v1/notification_preferences
+  method: PUT
+  path: "/api/v1/notification_preferences"
+  module: A10
+  api_md_line: 260
+  status: todo
+- id: POST /api/v1/auth/password/forgot
+  method: POST
+  path: "/api/v1/auth/password/forgot"
+  module: A01
+  api_md_line:
+  note: 'NEW: not in api.md (2026-10-14 decision)'
+  status: reviewed
+- id: POST /api/v1/auth/password/reset
+  method: POST
+  path: "/api/v1/auth/password/reset"
+  module: A01
+  api_md_line:
+  note: 'NEW: not in api.md (2026-10-14 decision)'
+  status: reviewed
+- id: POST /api/v1/auth/invite/accept
+  method: POST
+  path: "/api/v1/auth/invite/accept"
+  module: A01
+  api_md_line:
+  note: 'NEW: not in api.md (2026-10-14 decision)'
+  status: reviewed
+  device: optional device{} upsert
+- id: POST /webhooks/payments/billplz/:payout_account_id
+  method: POST
+  path: "/webhooks/payments/billplz/:payout_account_id"
+  module: A07
+  api_md_line:
+  note: 'NEW: not in api.md (2026-10-14 decision)'
+  status: reviewed
