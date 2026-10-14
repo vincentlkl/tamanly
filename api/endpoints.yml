@@ -434,49 +434,49 @@
   path: "/api/v1/market/categories"
   module: A09
   api_md_line: 241
-  status: built
+  status: reviewed
 - id: GET /api/v1/listings
   method: GET
   path: "/api/v1/listings?q=&category_id=&mine=true"
   module: A09
   api_md_line: 242
-  status: built
+  status: reviewed
 - id: GET /api/v1/listings/:id
   method: GET
   path: "/api/v1/listings/:id"
   module: A09
   api_md_line: 243
-  status: built
+  status: reviewed
 - id: POST /api/v1/listings
   method: POST
   path: "/api/v1/listings"
   module: A09
   api_md_line: 244
-  status: built
+  status: reviewed
 - id: PATCH /api/v1/listings/:id
   method: PATCH
   path: "/api/v1/listings/:id"
   module: A09
   api_md_line: 245
-  status: built
+  status: reviewed
 - id: POST /api/v1/listings/:id/sold
   method: POST
   path: "/api/v1/listings/:id/sold"
   module: A09
   api_md_line: 246
-  status: built
+  status: reviewed
 - id: DELETE /api/v1/listings/:id
   method: DELETE
   path: "/api/v1/listings/:id"
   module: A09
   api_md_line: 247
-  status: built
+  status: reviewed
 - id: POST /api/v1/listings/:id/reports
   method: POST
   path: "/api/v1/listings/:id/reports"
   module: A09
   api_md_line: 248
-  status: built
+  status: reviewed
 - id: PUT /api/v1/devices/current
   method: PUT
   path: "/api/v1/devices/current"
