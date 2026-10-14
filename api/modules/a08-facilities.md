@@ -73,6 +73,8 @@ Endpoints: 7. Update `status` in [../endpoints.yml](../endpoints.yml) as you go.
 
 **Per-month limit:** Each unit may book a facility at most `facility.per_month` times per calendar month (calendar month in the Asia/Kuala_Lumpur time zone). `Bookings::Create.monthly_count` queries `.all_month` on the booking start time, respecting the Rails time zone config (Kuala Lumpur).
 
+**Refunds on cancel:** When a paid booking is cancelled, the refund is processed manually by admin via the reconciliation UI. No automatic refund logic; cancel endpoint only marks booking as cancelled and releases the slot.
+
 ## Module done
 - [x] all specs green
 - [x] swagger regenerated (`rails rswag`)
