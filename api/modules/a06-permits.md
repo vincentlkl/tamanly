@@ -99,3 +99,8 @@ Endpoints: 10. Update `status` in [../endpoints.yml](../endpoints.yml) as you go
 - [x] all specs green
 - [x] swagger regenerated (`rails rswag`)
 - [x] usage rows logged
+
+## A06F1 (withdraw lock + tenancy scope)
+- [x] review pass (Opus high)
+- [x] all specs green
+- [x] swagger regenerated (no doc changes)
