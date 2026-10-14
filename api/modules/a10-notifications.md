@@ -27,52 +27,52 @@ Endpoints: 7. Update `status` in [../endpoints.yml](../endpoints.yml) as you go.
 ## Per-endpoint checklist
 
 ### PUT /api/v1/devices/current
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### DELETE /api/v1/devices/current
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### GET /api/v1/notifications?unread=true
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### POST /api/v1/notifications/:id/read
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### POST /api/v1/notifications/read_all
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### GET /api/v1/notification_preferences
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### PUT /api/v1/notification_preferences
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ## Module done
