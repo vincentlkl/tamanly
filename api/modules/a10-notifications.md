@@ -31,51 +31,51 @@ Endpoints: 7. Update `status` in [../endpoints.yml](../endpoints.yml) as you go.
 - [x] request spec (happy + 401 + 403/422)
 - [x] rswag doc
 - [x] authorization check (unit / scope / ownership)
-- [ ] review pass (Opus high)
+- [x] review pass (Opus high)
 
 ### DELETE /api/v1/devices/current
 - [x] implement
 - [x] request spec (happy + 401 + 403/422)
 - [x] rswag doc
 - [x] authorization check (unit / scope / ownership)
-- [ ] review pass (Opus high)
+- [x] review pass (Opus high)
 
 ### GET /api/v1/notifications?unread=true
 - [x] implement
 - [x] request spec (happy + 401 + 403/422)
 - [x] rswag doc
 - [x] authorization check (unit / scope / ownership)
-- [ ] review pass (Opus high)
+- [x] review pass (Opus high)
 
 ### POST /api/v1/notifications/:id/read
 - [x] implement
 - [x] request spec (happy + 401 + 403/422)
 - [x] rswag doc
 - [x] authorization check (unit / scope / ownership)
-- [ ] review pass (Opus high)
+- [x] review pass (Opus high)
 
 ### POST /api/v1/notifications/read_all
 - [x] implement
 - [x] request spec (happy + 401 + 403/422)
 - [x] rswag doc
 - [x] authorization check (unit / scope / ownership)
-- [ ] review pass (Opus high)
+- [x] review pass (Opus high)
 
 ### GET /api/v1/notification_preferences
 - [x] implement
 - [x] request spec (happy + 401 + 403/422)
 - [x] rswag doc
 - [x] authorization check (unit / scope / ownership)
-- [ ] review pass (Opus high)
+- [x] review pass (Opus high)
 
 ### PUT /api/v1/notification_preferences
 - [x] implement
 - [x] request spec (happy + 401 + 403/422)
 - [x] rswag doc
 - [x] authorization check (unit / scope / ownership)
-- [ ] review pass (Opus high)
+- [x] review pass (Opus high)
 
 ## Module done
-- [ ] all specs green
-- [ ] swagger regenerated (`rails rswag`)
+- [x] all specs green
+- [x] swagger regenerated (`rails rswag`)
 - [ ] usage rows logged

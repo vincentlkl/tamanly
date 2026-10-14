@@ -482,44 +482,44 @@
   path: "/api/v1/devices/current"
   module: A10
   api_md_line: 254
-  status: built
+  status: reviewed
   device: upsert device/fcm_token (POST /devices alias)
 - id: DELETE /api/v1/devices/current
   method: DELETE
   path: "/api/v1/devices/current"
   module: A10
   api_md_line: 255
-  status: built
+  status: reviewed
 - id: GET /api/v1/notifications
   method: GET
   path: "/api/v1/notifications?unread=true"
   module: A10
   api_md_line: 256
-  status: built
+  status: reviewed
 - id: POST /api/v1/notifications/:id/read
   method: POST
   path: "/api/v1/notifications/:id/read"
   module: A10
   api_md_line: 257
-  status: built
+  status: reviewed
 - id: POST /api/v1/notifications/read_all
   method: POST
   path: "/api/v1/notifications/read_all"
   module: A10
   api_md_line: 258
-  status: built
+  status: reviewed
 - id: GET /api/v1/notification_preferences
   method: GET
   path: "/api/v1/notification_preferences"
   module: A10
   api_md_line: 259
-  status: built
+  status: reviewed
 - id: PUT /api/v1/notification_preferences
   method: PUT
   path: "/api/v1/notification_preferences"
   module: A10
   api_md_line: 260
-  status: built
+  status: reviewed
 - id: POST /api/v1/auth/password/forgot
   method: POST
   path: "/api/v1/auth/password/forgot"
