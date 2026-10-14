@@ -20,59 +20,59 @@ Endpoints: 8. Update `status` in [../endpoints.yml](../endpoints.yml) as you go.
 ## Per-endpoint checklist
 
 ### GET /api/v1/market/categories
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### GET /api/v1/listings?q=&category_id=&mine=true
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### GET /api/v1/listings/:id
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### POST /api/v1/listings
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### PATCH /api/v1/listings/:id
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### POST /api/v1/listings/:id/sold
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### DELETE /api/v1/listings/:id
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ### POST /api/v1/listings/:id/reports
-- [ ] implement
-- [ ] request spec (happy + 401 + 403/422)
-- [ ] rswag doc
-- [ ] authorization check (unit / scope / ownership)
+- [x] implement
+- [x] request spec (happy + 401 + 403/422)
+- [x] rswag doc
+- [x] authorization check (unit / scope / ownership)
 - [ ] review pass (Opus high)
 
 ## Module done
