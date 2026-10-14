@@ -8,6 +8,6 @@ Resume: rerun runs/drive_a08f2.sh (finished steps have A08G2F<n>_build.ok files)
 | 3 | facility_booking scope can pay own bookings (no bills_pay needed) | queued | |
 | 4 | Refunds manual by admin: docs note only | queued | |
 | 5 | 'Booking' option in admin reconciliation filter | queued | |
-| - | Full rspec + minitest | queued | |
-| - | Opus medium review + fixes | queued | |
+| - | Full rspec + minitest | done (887 examples, 0 failures 87 runs, 565 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (888 examples, 0 failures 87 runs, 565 assertions, 0 failures, 0 errors, 0 skips ) | ed5655f |
 Note: if drive_all.sh halts on a limit the waiter exits; after drive_all.log shows ALLDONE run drive_a08f2.sh directly.
