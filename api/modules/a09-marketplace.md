@@ -78,4 +78,4 @@ Endpoints: 8. Update `status` in [../endpoints.yml](../endpoints.yml) as you go.
 ## Module done
 - [x] all specs green
 - [x] swagger regenerated (`rails rswag`)
-- [ ] usage rows logged
+- [x] usage rows logged

@@ -78,7 +78,7 @@ Endpoints: 7. Update `status` in [../endpoints.yml](../endpoints.yml) as you go.
 ## Module done
 - [x] all specs green
 - [x] swagger regenerated (`rails rswag`)
-- [ ] usage rows logged
+- [x] usage rows logged
 
 ## Run log (2026-10-14)
 - Group 1 facilities (3 endpoints): built by Haiku medium, full suites green, committed c713f09.
