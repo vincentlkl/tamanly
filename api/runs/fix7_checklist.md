@@ -4,5 +4,5 @@ Runs via runs/drive_fix7.sh in screen 'fix7'. Resume: rerun drive_fix7.sh (finis
 |---|------|--------|--------|
 | 1 | Track per-person push result per broadcast; stats from real results | done | 87a4de5 |
 | 2 | Retry pushes only to failed recipients, no duplicate inbox rows | done | 9a60eaa |
-| - | Full rspec + minitest | pending |  |
-| - | Opus medium review + fixes | pending |  |
+| - | Full rspec + minitest | done (949 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (953 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | 59b41ad |
