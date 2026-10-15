@@ -3,5 +3,5 @@ Runs via runs/drive_fix9.sh in screen 'fix9'. Resume: rerun drive_fix9.sh (finis
 | # | Item | Status | Commit |
 |---|------|--------|--------|
 | 1 | Retry reclaims pending rows older than 10 min (safe outer-check claim); specs stale vs fresh | done | 572b33d |
-| - | Full rspec + minitest | pending |  |
-| - | Opus medium review + fixes | pending |  |
+| - | Full rspec + minitest | done (958 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (959 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | 698c387 |
