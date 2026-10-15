@@ -1,0 +1,14 @@
+Implement P02 Visitor Categories in this Rails app (cwd = tamanly_backend on feature/mobile-api).
+
+READ FIRST: ../plan/api/plans/2026-10-15-visitor-categories.md (full plan; Vincent locked: scoped routes.rb edits allowed for listed routes; onsite/Gate contractor filters need permit_id: present). Also AGENT_CONVENTIONS.md. Pattern: MarketCategory + Admin::MarketPoliciesController + Api::V1::MarketCategoriesController.
+
+DO Tasks 1–5 completely (NOT Task 6 Flutter guide — skip guide for this build):
+1. Migration 20261015210000_create_visitor_categories.rb: visitor_categories table + visitor_entries.visitor_category_id; seed 5 defaults per org in up; backfill by base.
+2. Models/services: VisitorCategory, Visitors::SeedCategories, Visitors::SaveCategory; wire Organization, VisitorEntry; Superadmin + seeds/04_security.
+3. VisitorPasses::Create takes category_id (not kind); PLATED includes contractor; serializer adds category:{id,name}; preload.
+4. GET /api/v1/visitor_categories + route; rswag request specs; update visitor_passes_spec for category_id.
+5. Admin::VisitorCategoriesController + views + nav + routes; VisitorsController filter by category; OnsiteController + Gate::Board contractor scopes add permit_id present.
+6. endpoints.yml: add GET visitor_categories (module A04); mark POST visitor_passes field note; rails rswag / rake rswag:specs:swaggerize.
+7. PGHOST=127.0.0.1 PGPORT=55432 PGGSSENCMODE=disable — run targeted rspec until green, then full bundle exec rspec if time.
+
+Constraints: short clean code; logic in services; no SMS; UUID PKs; never git push; you MAY commit with /usr/bin/git locally after green specs (message like "P02: visitor categories"). Only edit tamanly_backend and ../plan/api/endpoints.yml (+ usage if any). Do NOT push. End with: files changed, migration name, test counts, any judgement calls.

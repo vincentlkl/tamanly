@@ -1,0 +1,5 @@
+Review P02 visitor categories on feature/mobile-api: /usr/bin/git diff $(cat ../plan/api/runs/P02.base)..HEAD and ../plan/api/plans/2026-10-15-visitor-categories.md and ../plan/api/runs/P02_checklist.md.
+
+Check: org-owned categories; Create uses category_id + base; Contractor seeded; serializer category; GET /visitor_categories scoped; admin CRUD; no hard-delete when in use; onsite/Gate contractor filters use permit_id: present; no SMS; CLEAN CODE (short, no dead code, services hold logic).
+
+Budget limited (Opus medium): fix real bugs only, with specs. Run PGHOST=127.0.0.1 PGPORT=55432 PGGSSENCMODE=disable bundle exec rspec and bin/rails test until green. Keep schema.rb to real changes. Do NOT push. Do NOT commit (drive commits). Only edit tamanly_backend (+ plan/api/endpoints.yml if needed). End with findings, judgement calls, test counts.
