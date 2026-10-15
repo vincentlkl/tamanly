@@ -5,5 +5,5 @@ Runs via runs/drive_fix5.sh in screen 'fix5'. Resume: rerun drive_fix5.sh (finis
 | 1 | Broadcasts: no SMS channel, default Push, no fake 98%, migrate SMS rows | done | 9602a19 |
 | 2 | Late-fee reminders: no SMS channel, credits text gone, migrate data | done | 7b40097 |
 | 3 | Announcements: no SMS/credits text; sweep leftovers (enums, seeds, i18n, helpers, specs) | done | 5a10d8b |
-| - | Full rspec + minitest | pending |  |
-| - | Opus medium review + fixes | pending |  |
+| - | Full rspec + minitest | done (937 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (939 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | cef94af |
