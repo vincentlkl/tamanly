@@ -237,6 +237,7 @@
   module: A05
   api_md_line: 171
   status: reviewed
+  notes: Creates a waiting request and notifies active occupants with deep_link tamanly://walkin_requests/{id}
 - id: GET /api/v1/guard/walkins/:id
   method: GET
   path: "/api/v1/guard/walkins/:id"
