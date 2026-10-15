@@ -8,4 +8,4 @@ Progress: 4/4 steps (100%)
 | 1b | Haiku fix visitor_passes specs for category_id | done | cb35d0b |
 | 2 | Full rspec + admin minitest | done (965 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) |  |
 | 3 | Opus medium review + fixes | done (965 examples, 0 failures 89 runs, 579 assertions, 0 failures, 0 errors, 0 skips ) | b1ea6f1 |
-| - | Guide Task 6 (04-visitors-sos.md) | pending | |
+| - | Guide Task 6 (04-visitors-sos.md) | Guide Task 6 done |  |
