@@ -1,7 +1,7 @@
 # Decision-plan implementation (approved 2026-10-15)
 Resumed 2026-10-15 ~22:38 MYT on main. Build haiku-5-5 / review sonnet-5-5 @ --effort low. Drive: runs/drive_impl_remaining.sh. Never commit feature/mobile-api.
 Drive: runs/drive_impl_remaining.sh in screen 'impl'. Progress: runs/impl_progress.log
-Progress: 33% — P04 walk-in notify done
+Progress: 50% — P05-A11 guard permit csv done
 | Plan | Scope | Status |
 |---|---|---|
 | P02 | Visitor categories | done |
