@@ -3,6 +3,6 @@ Runs via runs/drive_fix6.sh in screen 'fix6'. Resume: rerun drive_fix6.sh (finis
 | # | Item | Status | Commit |
 |---|------|--------|--------|
 | 1 | No made-up 96% delivered on broadcast retry; real results only | done | 9f47050 |
-| 2 | Validate announcement channels against allowed list, en/ms messages | pending |  |
+| 2 | Validate announcement channels against allowed list, en/ms messages | done | 9079390 |
 | - | Full rspec + minitest | pending |  |
 | - | Opus medium review + fixes | pending |  |
