@@ -1,7 +1,7 @@
 # Decision-plan implementation (approved 2026-10-15)
 Haiku build + Sonnet review from A12 onward (P02/P04/A11/P03 reviews stay Opus). Both `--effort medium`. Never push.
 Drive: runs/drive_impl_remaining.sh in screen 'impl'. Progress: runs/impl_progress.log
-Progress: 50% — P05-A11 guard permit csv done
+Progress: 67% — P03 org booking limit done
 | Plan | Scope | Status |
 |---|---|---|
 | P02 | Visitor categories | done |
