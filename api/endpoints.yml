@@ -608,7 +608,7 @@
   source: P05
 - id: POST /api/v1/listings
   method: POST
-  path: "/api/v1/listings photos[]"
+  path: "/api/v1/listings"
   module: A13
   api_md_line: null
   status: todo
