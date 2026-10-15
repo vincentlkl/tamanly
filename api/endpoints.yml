@@ -406,6 +406,7 @@
   module: A08
   api_md_line: 228
   status: reviewed
+  note: "P03: now exposes booking_limit, booking_limit_period from org, and quota for current unit"
 - id: GET /api/v1/facilities/:id/availability
   method: GET
   path: "/api/v1/facilities/:id/availability?date=2026-10-10"
