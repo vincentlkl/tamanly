@@ -17,6 +17,9 @@ Plan only. Source contract: [../storyboard/plans/api.md](../storyboard/plans/api
 | A08 | [Facilities, bookings](modules/a08-facilities.md) | 7 | Haiku high | Sonnet high |
 | A09 | [Marketplace](modules/a09-marketplace.md) | 8 | Haiku high | Sonnet high |
 | A10 | [Devices, notifications](modules/a10-notifications.md) | 7 | Haiku high | Sonnet high |
+| A11 | Guard (permit show/deny, gate CSV) | 3 | Haiku high | Sonnet high |
+| A12 | Billing + permits (statement PDF, access requests, refund account) | 3 | Haiku high | Sonnet high |
+| A13 | Incidents + marketplace (resident incidents, listing photos) | 2 | Haiku high | Sonnet high |
 
 ## Decisions locked
 

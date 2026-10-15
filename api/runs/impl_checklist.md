@@ -6,7 +6,7 @@ Progress: 33% — P04 walk-in notify done
 |---|---|---|
 | P02 | Visitor categories | done |
 | P04 | Walk-in host notify + visitor_pass_id (backend Task1) | done |
-| A11 | P05 guard permit show/deny + gate CSV | pending |
+| A11 | P05 guard permit show/deny + gate CSV | running |
 | P03 | Org booking limit (week|month + count) | pending |
 | A12 | P05 statement PDF, access requests, refund account | pending |
 | A13 | P05 incidents + listing photos/kind/condition | pending |

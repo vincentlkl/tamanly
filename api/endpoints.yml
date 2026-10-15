@@ -556,3 +556,59 @@
   api_md_line:
   note: 'NEW: not in api.md (2026-10-14 decision)'
   status: reviewed
+- id: GET /api/v1/guard/gate_events/csv
+  method: GET
+  path: "/api/v1/guard/gate_events/csv"
+  module: A11
+  api_md_line: null
+  status: todo
+  source: P05
+- id: GET /api/v1/guard/permits/:id
+  method: GET
+  path: "/api/v1/guard/permits/:id"
+  module: A11
+  api_md_line: null
+  status: todo
+  source: P05
+- id: POST /api/v1/guard/permits/:id/deny
+  method: POST
+  path: "/api/v1/guard/permits/:id/deny"
+  module: A11
+  api_md_line: null
+  status: todo
+  source: P05
+- id: GET /api/v1/billing/statement/pdf
+  method: GET
+  path: "/api/v1/billing/statement/pdf"
+  module: A12
+  api_md_line: null
+  status: todo
+  source: P05
+- id: POST /api/v1/access_requests
+  method: POST
+  path: "/api/v1/access_requests"
+  module: A12
+  api_md_line: null
+  status: todo
+  source: P05
+- id: PATCH /api/v1/permits/:id
+  method: PATCH
+  path: "/api/v1/permits/:id"
+  module: A12
+  api_md_line: null
+  status: todo
+  source: P05
+- id: POST /api/v1/incidents
+  method: POST
+  path: "/api/v1/incidents"
+  module: A13
+  api_md_line: null
+  status: todo
+  source: P05
+- id: POST /api/v1/listings
+  method: POST
+  path: "/api/v1/listings photos[]"
+  module: A13
+  api_md_line: null
+  status: todo
+  source: P05
