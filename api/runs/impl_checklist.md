@@ -8,6 +8,6 @@ Progress: 67% — P03 org booking limit done
 | P04 | Walk-in host notify + visitor_pass_id (backend Task1) | done |
 | A11 | P05 guard permit show/deny + gate CSV | done |
 | P03 | Org booking limit (week or month + count) | done |
-| A12 | P05 statement PDF, access requests, refund account | build done; tests/review pending |
+| A12 | P05 statement PDF, access requests, refund account | running |
 | A13 | P05 incidents + listing photos/kind/condition | pending |
 | P01 | Invite-only guides/storyboard | pending |
