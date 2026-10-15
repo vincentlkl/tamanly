@@ -9,8 +9,9 @@ export PGHOST=127.0.0.1 PGPORT=55432 PGGSSENCMODE=disable
 IC=$R/impl_checklist.md
 PL=$R/impl_progress.log
 PUSH=$R/push_progress.sh
-HAIKU=claude-haiku-4-5
-OPUS=claude-sonnet-4-5
+HAIKU=claude-haiku-5-5
+SONNET=claude-sonnet-5-5
+OPUS=claude-opus-5-5
 
 mark_plan(){ # id status
   python3 -c '
@@ -107,7 +108,7 @@ $(cat "$REVIEW" | tail -n +1)
 Budget Sonnet medium: fix real bugs only with specs. Run PGHOST=127.0.0.1 PGPORT=55432 PGGSSENCMODE=disable bundle exec rspec and bin/rails test until green. Do NOT commit or push. Only edit tamanly_backend (+ plan/api/endpoints.yml/README if needed). End with findings, judgement calls, test counts.
 X
     rm -f $R/${MOD}_review.done
-    $R/run_claude_retry.sh "$MOD" review "$OPUS" medium $R/${MOD}_review_run.txt
+    $R/run_claude_retry.sh "$MOD" review "$SONNET" medium $R/${MOD}_review_run.txt
     if [ ! -s $R/${MOD}_review.json ] || grep -q '"is_error":true' $R/${MOD}_review.json; then
       mark_plan "$MOD" "HALTED review limit"
       exit 1
@@ -183,8 +184,8 @@ if [ ! -f $R/P01_build.ok ]; then
   "$PUSH" || true
 fi
 if [ ! -f $R/P01_review.ok ]; then
-  (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_review.txt)" --model $OPUS --effort medium --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_review.json 2>$R/P01_review.err)
-  ruby $P/api/log_run.rb $R/P01_review.json P01 review plan $OPUS medium >> $R/P01_review.err 2>&1 || true
+  (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_review.txt)" --model $SONNET --effort medium --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_review.json 2>$R/P01_review.err)
+  ruby $P/api/log_run.rb $R/P01_review.json P01 review plan $SONNET medium >> $R/P01_review.err 2>&1 || true
   if [ -s $R/P01_review.json ] && ! grep -q '"is_error":true' $R/P01_review.json; then
     cd $P
     /usr/bin/git add storyboard api/plans 2>/dev/null
