@@ -7,5 +7,5 @@ Runs via runs/drive_fix2.sh in screen 'fix2'. Resume: rerun drive_fix2.sh (finis
 | 3 | Admin-approved: payment window from approval, notify booker | done | b68f583 |
 | 4 | Deposit-only bookings require online payment | done | 76f5b67 |
 | 5 | FCM PushSender + token pruning, BroadcastPushJob, in-app notifications | done | d22b15a |
-| - | Full rspec + minitest | pending |  |
-| - | Opus medium review + fixes | pending |  |
+| - | Full rspec + minitest | done (909 examples, 0 failures 87 runs, 565 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (916 examples, 0 failures 87 runs, 565 assertions, 0 failures, 0 errors, 0 skips ) | 9a9fd91 |
