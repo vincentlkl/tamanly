@@ -5,6 +5,6 @@ Runs via runs/drive_fix3.sh in screen 'fix3'. Resume: rerun drive_fix3.sh (finis
 | 1 | Per-property booking auto-cancel minutes (default 15; unpaid + unapproved), admin setting, expiry job | done | 7d83262 |
 | 2 | Recurring job sends due scheduled broadcasts once via BroadcastPushJob | done | 27ba45d |
 | 3 | Announcement push off still creates in-app inbox row | done | 04dcda6 |
-| 4 | Broadcast recipient_count counts distinct people, not devices | pending |  |
+| 4 | Broadcast recipient_count counts distinct people, not devices | done | bf2c2e5 |
 | - | Full rspec + minitest | pending |  |
 | - | Opus medium review + fixes | pending |  |
