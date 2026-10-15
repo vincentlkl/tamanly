@@ -10,4 +10,4 @@ Progress: 90% — P05-A13 incidents+listings done
 | P03 | Org booking limit (week or month + count) | done |
 | A12 | P05 statement PDF, access requests, refund account | done |
 | A13 | P05 incidents + listing photos/kind/condition | done |
-| P01 | Invite-only guides/storyboard | pending |
+| P01 | Invite-only guides/storyboard | running |
