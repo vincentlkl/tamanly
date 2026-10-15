@@ -153,6 +153,12 @@
   module: A04
   api_md_line: 158
   status: reviewed
+- id: GET /api/v1/visitor_categories
+  method: GET
+  path: "/api/v1/visitor_categories"
+  module: A04
+  api_md_line: null
+  status: reviewed
 - id: POST /api/v1/walkin_requests/:id/reply
   method: POST
   path: "/api/v1/walkin_requests/:id/reply"
