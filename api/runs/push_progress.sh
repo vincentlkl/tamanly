@@ -24,8 +24,9 @@ else
   log "app: PROGRESS.md unchanged"
 fi
 
-# commit backend progress (local always)
+# commit backend progress on main only
 cd "$BACKEND"
+$GIT checkout main >/dev/null 2>&1 || true
 $GIT add PROGRESS.md bin/progress 2>/dev/null || true
 if ! $GIT diff --cached --quiet; then
   $GIT commit -qm "Update PROGRESS.md"
@@ -66,9 +67,5 @@ push_branch(){
 push_branch "$APP" "tamanly_app"
 push_branch "$PLAN" "plan"
 push_branch "$BACKEND" "tamanly_backend"
-# also push feature/mobile-api on backend if it exists and has origin
-cd "$BACKEND"
-if $GIT remote get-url origin >/dev/null 2>&1 && $GIT show-ref --verify --quiet refs/heads/feature/mobile-api; then
-  $GIT push -u origin feature/mobile-api 2>&1 | tee -a "$LOG" || log "backend: feature/mobile-api push failed"
-fi
+# main only — do not push feature/mobile-api (Vincent 2026-10-15)
 log "done"

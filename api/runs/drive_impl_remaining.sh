@@ -12,6 +12,7 @@ PUSH=$R/push_progress.sh
 HAIKU=claude-haiku-5-5
 SONNET=claude-sonnet-5-5
 OPUS=claude-opus-5-5
+# effort: low for build+review (Vincent 2026-10-15). Work on backend main only.
 
 mark_plan(){ # id status
   python3 -c '
@@ -45,6 +46,7 @@ pc_plan(){ # msg
 cost_since(){ python3 /Users/vincent/work/ror/apps/vincent/tamanly/plan/api/runs/cost_since.py "$1"; }
 
 run_backend_module(){
+  /usr/bin/git -C $B checkout main >/dev/null 2>&1 || true
   # $1=MOD $2=label $3=pct_after $4=build_prompt $5=review_prompt $6=commit_msg_prefix
   local MOD=$1 LABEL=$2 PCT=$3 BUILD=$4 REVIEW=$5 CMSG=$6
   mark_plan "$MOD" "running"
@@ -52,7 +54,7 @@ run_backend_module(){
 
   if [ ! -f $R/${MOD}_build.ok ]; then
     rm -f $R/${MOD}_build.done
-    $R/run_claude_retry.sh "$MOD" build "$HAIKU" medium "$BUILD"
+    $R/run_claude_retry.sh "$MOD" build "$HAIKU" low "$BUILD"
     if [ ! -s $R/${MOD}_build.json ] || grep -q '"is_error":true' $R/${MOD}_build.json; then
       mark_plan "$MOD" "HALTED build limit/error"
       progress "$PCT" "$LABEL HALTED build" "-" "-" "-"
@@ -68,7 +70,7 @@ Module $MOD specs are red. Log: ../plan/api/runs/${MOD}_build_spec.log
 Fix until green. Plan: see matching 2026-10-15 plan under ../plan/api/plans/.
 Do NOT commit/push. Run: PGHOST=127.0.0.1 PGPORT=55432 PGGSSENCMODE=disable bundle exec rspec (full) until green if feasible, else targeted then note.
 X
-      $R/run_claude_retry.sh "$MOD" specfix "$HAIKU" medium $R/${MOD}_specfix.txt
+      $R/run_claude_retry.sh "$MOD" specfix "$HAIKU" low $R/${MOD}_specfix.txt
       if [ ! -s $R/${MOD}_specfix.json ] || grep -q '"is_error":true' $R/${MOD}_specfix.json; then
         mark_plan "$MOD" "HALTED specfix limit"
         exit 1
@@ -105,10 +107,10 @@ Review $LABEL on feature/mobile-api.
 Diff: /usr/bin/git diff ${BASE}..HEAD
 Plan: ../plan/api/plans/ (matching 2026-10-15 file) and ../plan/api/runs/impl_checklist.md
 $(cat "$REVIEW" | tail -n +1)
-Budget Sonnet medium: fix real bugs only with specs. Run PGHOST=127.0.0.1 PGPORT=55432 PGGSSENCMODE=disable bundle exec rspec and bin/rails test until green. Do NOT commit or push. Only edit tamanly_backend (+ plan/api/endpoints.yml/README if needed). End with findings, judgement calls, test counts.
+Budget Sonnet low: fix real bugs only with specs. Run PGHOST=127.0.0.1 PGPORT=55432 PGGSSENCMODE=disable bundle exec rspec and bin/rails test until green. Do NOT commit or push. Only edit tamanly_backend (+ plan/api/endpoints.yml/README if needed). End with findings, judgement calls, test counts.
 X
     rm -f $R/${MOD}_review.done
-    $R/run_claude_retry.sh "$MOD" review "$SONNET" medium $R/${MOD}_review_run.txt
+    $R/run_claude_retry.sh "$MOD" review "$SONNET" low $R/${MOD}_review_run.txt
     if [ ! -s $R/${MOD}_review.json ] || grep -q '"is_error":true' $R/${MOD}_review.json; then
       mark_plan "$MOD" "HALTED review limit"
       exit 1
@@ -161,16 +163,16 @@ run_backend_module A13 "P05-A13 incidents+listings" "90%" "$R/A13_build.txt" "$R
 # P01 docs
 mark_plan P01 "running"
 if [ ! -f $R/P01_build.ok ]; then
-  (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_build.txt)" --model $HAIKU --effort medium --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_build.json 2>$R/P01_build.err)
-  ruby $P/api/log_run.rb $R/P01_build.json P01 build plan $HAIKU medium >> $R/P01_build.err 2>&1 || true
+  (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_build.txt)" --model $HAIKU --effort low --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_build.json 2>$R/P01_build.err)
+  ruby $P/api/log_run.rb $R/P01_build.json P01 build plan $HAIKU low >> $R/P01_build.err 2>&1 || true
   if [ ! -s $R/P01_build.json ] || grep -q '"is_error":true' $R/P01_build.json; then
     # limit wait loop
     while :; do
       sleep 1800
       /Users/vincent/.local/bin/claude -p "ok" --model $HAIKU --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break
     done
-    (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_build.txt)" --model $HAIKU --effort medium --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_build.json 2>$R/P01_build.err)
-    ruby $P/api/log_run.rb $R/P01_build.json P01 build plan $HAIKU medium >> $R/P01_build.err 2>&1 || true
+    (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_build.txt)" --model $HAIKU --effort low --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_build.json 2>$R/P01_build.err)
+    ruby $P/api/log_run.rb $R/P01_build.json P01 build plan $HAIKU low >> $R/P01_build.err 2>&1 || true
   fi
   cd $P
   /usr/bin/git add storyboard api/plans 2>/dev/null
@@ -184,8 +186,8 @@ if [ ! -f $R/P01_build.ok ]; then
   "$PUSH" || true
 fi
 if [ ! -f $R/P01_review.ok ]; then
-  (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_review.txt)" --model $SONNET --effort medium --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_review.json 2>$R/P01_review.err)
-  ruby $P/api/log_run.rb $R/P01_review.json P01 review plan $SONNET medium >> $R/P01_review.err 2>&1 || true
+  (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_review.txt)" --model $SONNET --effort low --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_review.json 2>$R/P01_review.err)
+  ruby $P/api/log_run.rb $R/P01_review.json P01 review plan $SONNET low >> $R/P01_review.err 2>&1 || true
   if [ -s $R/P01_review.json ] && ! grep -q '"is_error":true' $R/P01_review.json; then
     cd $P
     /usr/bin/git add storyboard api/plans 2>/dev/null
