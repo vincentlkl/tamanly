@@ -3,6 +3,6 @@ Runs via runs/drive_fix7.sh in screen 'fix7'. Resume: rerun drive_fix7.sh (finis
 | # | Item | Status | Commit |
 |---|------|--------|--------|
 | 1 | Track per-person push result per broadcast; stats from real results | done | 87a4de5 |
-| 2 | Retry pushes only to failed recipients, no duplicate inbox rows | pending |  |
+| 2 | Retry pushes only to failed recipients, no duplicate inbox rows | done | 9a60eaa |
 | - | Full rspec + minitest | pending |  |
 | - | Opus medium review + fixes | pending |  |
