@@ -1,7 +1,7 @@
 # Decision-plan implementation (approved 2026-10-15)
 Resumed 2026-10-15 ~22:38 MYT on main. Build haiku-5-5 / review sonnet-5-5 @ --effort low. Drive: runs/drive_impl_remaining.sh. Never commit feature/mobile-api.
 Drive: runs/drive_impl_remaining.sh in screen 'impl'. Progress: runs/impl_progress.log
-Progress: 90% — P05-A13 incidents+listings done
+Progress: 100% — P01 invite-only docs done
 | Plan | Scope | Status |
 |---|---|---|
 | P02 | Visitor categories | done |
@@ -10,4 +10,4 @@ Progress: 90% — P05-A13 incidents+listings done
 | P03 | Org booking limit (week or month + count) | done |
 | A12 | P05 statement PDF, access requests, refund account | done |
 | A13 | P05 incidents + listing photos/kind/condition | done |
-| P01 | Invite-only guides/storyboard | running |
+| P01 | Invite-only guides/storyboard | done |
