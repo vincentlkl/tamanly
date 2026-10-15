@@ -4,5 +4,5 @@ Runs via runs/drive_fix6.sh in screen 'fix6'. Resume: rerun drive_fix6.sh (finis
 |---|------|--------|--------|
 | 1 | No made-up 96% delivered on broadcast retry; real results only | done | 9f47050 |
 | 2 | Validate announcement channels against allowed list, en/ms messages | done | 9079390 |
-| - | Full rspec + minitest | pending |  |
-| - | Opus medium review + fixes | pending |  |
+| - | Full rspec + minitest | done (951 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (946 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | c409864 |
