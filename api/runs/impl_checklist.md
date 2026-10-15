@@ -9,5 +9,5 @@ Progress: 80% — P05-A12 billing access refund done
 | A11 | P05 guard permit show/deny + gate CSV | done |
 | P03 | Org booking limit (week or month + count) | done |
 | A12 | P05 statement PDF, access requests, refund account | done |
-| A13 | P05 incidents + listing photos/kind/condition | running — minitest fixed; resume tests+review on main |
+| A13 | P05 incidents + listing photos/kind/condition | running |
 | P01 | Invite-only guides/storyboard | pending |
