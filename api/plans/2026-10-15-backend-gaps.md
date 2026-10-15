@@ -25,7 +25,7 @@
 | D5 | **Resident incidents reuse the guard path.** `Gate::ReportIncident` with `severity: "low"`, `location: unit name`, `reported_by: "<name> (<unit>)"`. Categories get five resident keys (D9). No photo in v1: `Incident` has no attachment, and the guard route already rejects `photos` (`api.gate.photos_unavailable`). Any occupant of the unit may report, sub-tenants included. |
 | D6 | **Refund account:** keep `permits.bank` as the bank name (the admin views print it). Add `refund_holder` and `refund_account_number`, the latter with `encrypts` (Active Record encryption is already configured for `PayoutAccount`). The API never returns the full number, only `number_last4`. Edits are refused once `refund_paid_at` is set or the decision is `Forfeited`. |
 | D7 | **`GET /invites?code=` is not built.** Verified: `InvitesController#index` ignores params and lists `Current.user.occupancies.open_invites` on active tamans, which are invites addressed to the signed-in account. P01 (`2026-10-15-invite-only-signup.md` D4) dropped typed codes. Nothing to build. |
-| D8 | **Listing photos:** `has_many_attached :photos` on `Listing`, at most 6, images only, checked by `Permits::Upload.check(images: true)`. Multipart `photos[]` on create and update. On update, `photos[]` replaces all photos and `keep_photo_ids[]` keeps the listed ones. `kind` and `condition` are in the design (guide 10:30) but optional here: see Q3. |
+| D8 | **Listing photos + kind/condition (Vincent locked):** `has_many_attached :photos` on `Listing`, at most 6, images only, checked by `Permits::Upload.check(images: true)`. Multipart `photos[]` on create and update. On update, `photos[]` replaces all photos and `keep_photo_ids[]` keeps the listed ones. Add `kind` (`sell service free wanted`, default `sell`) and `condition` (`new like_new good fair`, nullable). Price 0 for `free`/`wanted`. |
 | D9 | **Incident categories:** add `Streetlight`, `Gate & access`, `App problem`, `Other` to `Incident::CATEGORIES` (`Noise` already exists). The resident route accepts only `RESIDENT_CATEGORIES = %w[streetlight gate_access noise app_problem other]`. The admin form gains them for free. |
 | D10 | **Build order:** these become modules **A11** (guard), **A12** (resident billing + permits), and **A13** (incidents + marketplace). Each module is its own build plus review pass, like A05–A10. |
 
@@ -37,7 +37,7 @@
 - **Tenant = taman.** Resident routes resolve through `Current.unit` (`requires_unit`). Guard routes resolve through `acts_as_tenant`, so another taman's id is a 404.
 - **Audit** every state change: `AuditEvent.record!(action: "domain.verb", target:)`. Never put an account number in metadata.
 - **Tests:** rspec request specs + rswag under `spec/requests/api/v1/`. Each endpoint needs a happy path, 401, 403/422, and another unit's/taman's id → 404. Regenerate with `bundle exec rake rswag:specs:swaggerize`. Run from `tamanly_backend/`.
-- **Migrations** start at `20261016100000` and step by 100.
+- **Migrations** start at `20261016100100` (P03 owns `20261016100000`) and step by 100.
 - **Never** `git push`, `db:seed`, `db:reset` or `db:drop`. Commit once per module, after the review is green. End each commit with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
 ### Permitted edits to protected files (this plan only)
@@ -68,7 +68,8 @@
 
 | Path | Responsibility |
 |---|---|
-| `db/migrate/20261016100000_add_refund_account_to_permits.rb` | `refund_holder`, `refund_account_number` (string, encrypted) |
+| `db/migrate/20261016100100_add_refund_account_to_permits.rb` | `refund_holder`, `refund_account_number` (string, encrypted) |
+| `db/migrate/20261016100200_add_listing_kind_condition.rb` | `listings.kind`, `listings.condition` |
 | `app/services/gate/log_csv.rb` | gate rows → CSV string |
 | `app/services/properties/request_access.rb` | validate the scopes, notify the host(s), audit |
 | `app/services/permits/save_refund_account.rb` | validate, save, audit |
@@ -206,7 +207,7 @@
   - 7 photos → 422; a PDF → 422;
   - update with `keep_photo_ids` of one plus one new photo → 2;
   - another seller's listing → 404.
-- [ ] `kind`/`condition`: **not in this task** (Q3).
+- [ ] `kind`/`condition`: **build now** — columns + enums; serializer fields; validate; free/wanted → price 0.
 
 ### Task 8: Close-out
 
@@ -232,7 +233,7 @@
 |---|---|---|
 | Q1 | The statement PDF prints "To: <owner name>". Should a sub-tenant with `bills_view` see the owner's name (PDPA; receipts hide the payer)? | Yes for owners/tenants. For sub-tenants, print "To: The owner" (pass a flag like `ReceiptPdf`'s `show_payer`). |
 | Q2 | Should guard permit deny also count toward a stop-work or notify the resident? | No. It's a gate row only (D3). The resident sees nothing. |
-| Q3 | Listing `kind` (`sell service free wanted`) and `condition` (`new like_new good fair`): build them now? | Not in A13. When asked: two nullable string columns with enums, `kind` default `sell`, and a price of 0 for `free`/`wanted`. One migration and the serializer fields. |
+| Q3 | Listing `kind`/`condition` | **Locked: build in A13** (Vincent). |
 | Q4 | Access-request and incident pushes: is the in-app inbox enough until A10's FCM per-row push exists? | Yes. In-app `Notification` rows only, like `Bookings::Decide`. |
 | Q5 | Resident incident photo (design G4 "optional photo"): add `has_many_attached :photos` to `Incident` for guards and residents together? | Not now. 422 `photos_unavailable`, same as the guard route. |
 | Q6 | Should permit create accept `refund_account` too, instead of only `bank`? | No. Create keeps `bank`; D4 edits through PATCH. |

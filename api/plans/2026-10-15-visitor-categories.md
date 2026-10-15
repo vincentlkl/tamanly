@@ -36,7 +36,8 @@ A new org-owned table `visitor_categories` stores a PM-editable `name` plus a **
 ## Global Constraints
 
 - Never push; commit only when Vincent asks. Conventions: `tamanly_backend/docs/AGENT_CONVENTIONS.md`.
-- `config/routes.rb` and `db/seeds.rb` are on the "never edit" list for build agents. Task 3/4 route lines are **reported to Vincent** (or added by the main session), not edited by the builder. `db/seeds/04_security.rb` may be edited.
+- **Scoped exception (Vincent locked):** builder may edit `config/routes.rb` only for the visitor-categories API + admin routes listed in this plan. `db/seeds.rb` still report-only unless a seeds partial is listed. `db/seeds/04_security.rb` may be edited.
+- **Onsite Contractor board (Vincent locked):** `Admin::OnsiteController` and `Gate::Board` contractor filters add `permit_id: present` so resident-created Contractor passes do not appear as permit workers.
 - Contract: add 1 row to `plan/api/endpoints.yml` (module A04) and regenerate `swagger/v1/swagger.yaml` (`rails rswag`). Request specs are rspec + rswag in `spec/requests/api/v1/`.
 - Migration prefix: next free after `20261015200000`, one migration per table group.
 
