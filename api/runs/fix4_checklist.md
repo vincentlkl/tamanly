@@ -5,5 +5,5 @@ Runs via runs/drive_fix4.sh in screen 'fix4'. Resume: rerun drive_fix4.sh (finis
 | 1 | Broadcast recipient_count counts push or inbox recipients | done | eaeb417 |
 | 2 | Auto-cancel minutes validated 1..1440, en/ms messages, form min/max | done | a506572 |
 | 3 | Remove SMS credit check + 'push and SMS' invoice flash text | done | cf82bcb |
-| - | Full rspec + minitest | pending |  |
-| - | Opus medium review + fixes | pending |  |
+| - | Full rspec + minitest | done (932 examples, 0 failures 87 runs, 565 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (933 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | 7f444c1 |
