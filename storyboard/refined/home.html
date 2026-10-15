@@ -1,0 +1,92 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ind:#3D2B6B;--deep:#2A1D4D;--coral:#E87A6B;--yel:#E8B84A;--cream:#F7F3EC;--ink:#1F1A2E;--mute:#6E6880;--hair:#ECE6DC;--lav:#C9C1E0;--tc:#FBE6E2;--ty:#FAF0D6;--ti:#ECE9F3;--tm:#E3F3EC}
+body{width:390px;height:844px;font-family:Inter,system-ui,sans-serif;background:var(--ind);color:var(--ink);overflow:hidden;position:relative;-webkit-font-smoothing:antialiased}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;color:#fff;font:600 15px Inter}
+.band{padding:4px 20px 30px;color:#fff}
+.top{display:flex;align-items:center;justify-content:space-between}
+.av{width:40px;height:40px;border-radius:50%;background:#E8B84A;color:var(--deep);display:grid;place-items:center;font:700 15px Inter;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.prop{text-align:center;padding:6px 16px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.prop small{display:block;font:600 10px/14px Inter;letter-spacing:.08em;color:var(--lav)}
+.prop span{font:600 14px/18px Inter;display:flex;align-items:center;gap:4px}
+.bell{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;position:relative}
+.bell:after{content:"";position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 2px var(--ind)}
+h1{font:700 26px/32px Inter;letter-spacing:-.02em;margin-top:16px}
+.sub{font:400 14px/20px Inter;color:var(--lav);margin-top:2px}
+.search{margin-top:14px;height:46px;background:#fff;border-radius:14px;display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--mute);font:400 15px Inter}
+.search .f{margin-left:auto}
+.sheet{background:var(--cream);border-radius:28px 28px 0 0;padding:16px 20px 120px;height:600px;margin-top:-12px}
+.alert{background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 2px rgba(31,26,46,.04),0 0 0 1px #F3D9D3}
+.alert .ic{width:36px;height:36px;border-radius:10px;background:var(--tc);color:#A23F31;display:grid;place-items:center}
+.alert b{font:600 13px/18px Inter;display:block;white-space:nowrap}.alert p{font:400 12px/16px Inter;color:var(--mute)}
+.alert a{margin-left:auto;font:600 13px Inter;color:#A23F31;display:flex;align-items:center}
+.hd{display:flex;justify-content:space-between;align-items:baseline;margin:18px 2px 10px}
+.hd h2{font:600 17px/22px Inter;letter-spacing:-.01em}.hd span{font:500 13px Inter;color:var(--ind)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.t{background:#fff;border-radius:16px;padding:10px 4px 8px;text-align:center;font:500 12px/16px Inter;color:var(--ink);box-shadow:0 1px 2px rgba(31,26,46,.04)}
+.t .ic{width:38px;height:38px;border-radius:11px;margin:0 auto 6px;display:grid;place-items:center}
+.c{background:var(--tc);color:#A23F31}.y{background:var(--ty);color:#7A5A12}.n{background:var(--ti);color:var(--ind)}.m{background:var(--tm);color:#1F7A50}.r{background:#FBE4E4;color:#B33232}
+.sos{color:#B33232;font-weight:600}
+.bill{margin-top:14px;background:var(--ind);border-radius:20px;padding:14px 16px;color:#fff;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(61,43,107,.16)}
+.bill .chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border-radius:999px;padding:4px 10px;font:600 12px Inter}
+.bill .st{position:absolute;right:18px;top:20px;font:500 12px Inter;color:var(--lav)}
+.bill p{font:500 13px Inter;color:var(--lav);margin-top:10px}
+.bill .amt{font:700 30px/36px Inter;letter-spacing:-.02em;margin-top:2px}
+.bill .row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.bill small{font:400 12px Inter;color:var(--lav)}
+.pay{background:var(--coral);color:var(--deep);border-radius:999px;padding:10px 16px;font:700 14px Inter;display:flex;align-items:center;gap:6px}
+.bill .deco{position:absolute;right:-10px;bottom:-14px;opacity:.12}
+.nav{position:absolute;left:16px;right:16px;bottom:24px;height:68px;background:#fff;border-radius:24px;box-shadow:0 8px 24px rgba(61,43,107,.12),0 0 0 1px rgba(31,26,46,.04);display:grid;grid-template-columns:repeat(5,1fr);align-items:end;padding-bottom:10px}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:3px;font:500 11px Inter;color:var(--mute)}
+.nav .on{color:var(--ind);font-weight:600}
+.nav .qr{position:relative}
+.nav .qr .b{width:56px;height:56px;border-radius:50%;background:var(--coral);color:var(--deep);display:grid;place-items:center;margin-top:-30px;box-shadow:0 0 0 5px #fff,0 6px 14px rgba(232,122,107,.35)}
+.fade{position:absolute;left:0;right:0;bottom:0;height:64px;background:var(--cream)}
+</style></head><body>
+<svg style="display:none"><defs>
+<symbol id="u" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/></symbol>
+<symbol id="clip" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></symbol>
+<symbol id="rec" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+<symbol id="sw" viewBox="0 0 24 24"><path d="M2 18c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5M8 14l4-7 4 3"/><circle cx="17" cy="6" r="1.8"/></symbol>
+<symbol id="shop" viewBox="0 0 24 24"><path d="M4 9 5.5 4h13L20 9M4 9h16v1.5a2.7 2.7 0 0 1-5.3 0 2.7 2.7 0 0 1-5.4 0A2.7 2.7 0 0 1 4 10.5zM5 13v7h14v-7M10 20v-4h4v4"/></symbol>
+<symbol id="book" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3 3 0 0 1 6 0M15 10h3M15 13h3"/></symbol>
+<symbol id="siren" viewBox="0 0 24 24"><path d="M7 18v-5a5 5 0 0 1 10 0v5M5 18h14v3H5zM12 3v2M4.2 6.2l1.4 1.4M19.8 6.2l-1.4 1.4"/></symbol>
+<symbol id="dots" viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.4"/><circle cx="12" cy="6" r="1.4"/><circle cx="18" cy="6" r="1.4"/><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/><circle cx="6" cy="18" r="1.4"/><circle cx="12" cy="18" r="1.4"/><circle cx="18" cy="18" r="1.4"/></symbol>
+</defs></svg>
+<div class="status"><span>9:41</span><span style="display:flex;gap:6px"><svg width="17" height="11" viewBox="0 0 17 11" fill="#fff"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg><svg width="25" height="11" viewBox="0 0 25 11" fill="#fff"><rect x=".5" y=".5" width="21" height="10" rx="3" fill="none" stroke="#fff" opacity=".5"/><rect x="2" y="2" width="18" height="7" rx="1.5"/></svg></span></div>
+<div class="band">
+ <div class="top"><div class="av">AR</div>
+ <div class="prop"><small>CURRENT PROPERTY</small><span>Taman Desa Harmoni · No. 12<svg class="i" style="width:14px;height:14px;stroke-width:2.4" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></div>
+ <div class="bell"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></svg></div></div>
+ <h1>Hello, Aisyah</h1><p class="sub">Owner · 3 properties</p>
+ <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search announcements, services…<svg class="i f" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></div>
+</div>
+<div class="sheet">
+ <div class="alert"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 2 20h20zM12 10v4M12 17h.01"/></svg></div><div><b>Water disruption · Sat 9am–2pm</b><p>Piping works on Jalan Harmoni 1–4</p></div><a>View<svg class="i" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></a></div>
+ <div class="hd"><h2>Quick services</h2><span>Edit</span></div>
+ <div class="grid">
+  <div class="t"><div class="ic c"><svg class="i"><use href="#u"/></svg></div>Visitors</div>
+  <div class="t"><div class="ic y"><svg class="i"><use href="#clip"/></svg></div>Permits</div>
+  <div class="t"><div class="ic n"><svg class="i"><use href="#rec"/></svg></div>Pay bills</div>
+  <div class="t"><div class="ic m"><svg class="i"><use href="#sw"/></svg></div>Facilities</div>
+  <div class="t"><div class="ic c"><svg class="i"><use href="#shop"/></svg></div>Market</div>
+  <div class="t"><div class="ic y"><svg class="i"><use href="#book"/></svg></div>Directory</div>
+  <div class="t sos"><div class="ic r"><svg class="i"><use href="#siren"/></svg></div>SOS Guard</div>
+  <div class="t"><div class="ic n"><svg class="i"><use href="#dots"/></svg></div>More</div>
+ </div>
+ <div class="bill"><span class="chip"><svg class="i" style="width:14px;height:14px;stroke-width:2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Bill due in 3 days</span><span class="st">Jalan Harmoni 3</span>
+  <p>Maintenance &amp; Sinking Fund · Oct</p><div class="amt">RM 185.00</div>
+  <div class="row"><small>Auto-debit available via FPX</small><span class="pay">Pay now<svg class="i" style="width:16px;height:16px;stroke-width:2.4" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+ </div>
+</div>
+<div class="fade"></div>
+<div class="nav">
+ <div class="on"><svg class="i" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</div>
+ <div><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Services</div>
+ <div class="qr"><div class="b"><svg class="i" style="width:26px;height:26px;stroke-width:2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M17 21h4v-4M14 21v-3"/></svg></div>QR Pass</div>
+ <div><svg class="i"><use href="#rec"/></svg>Bills</div>
+ <div><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Me</div>
+</div></body></html>

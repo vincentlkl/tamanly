@@ -2,7 +2,7 @@
 
 **Status:** Done · **Owner:** grok · **Depends on:** F00
 
-**Ponytail:** full. Firebase phone auth is the resident sign-in. Staff email uses the password endpoint. Do not build Google, Apple, or a resident password. One form widget for the OTP code.
+**Ponytail:** full. Everyone signs in with email + password (`POST /auth/password`). Invite links open a set-password screen (`POST /auth/invite/accept`). Forgot password is in. No phone OTP, no Google, no Apple.
 
 **Screens:** A1 Welcome, A2 Sign in, A3 Choose role, A4 Verify & link, A5 Property switcher, A6 Invite sub-tenant, A7 Accept invite. H0's property chip opens A5 (the chip itself is F02).
 
@@ -17,17 +17,17 @@
 - Modify: `lib/router.dart`
 - Test: `test/access/sign_in_test.dart`
 
-Storyboard: A1 brand, EN/BM toggle, illustration. A2 phone field with `+60`, "Sign in with one-time code", link to create account. Staff reach email via the Email tab, which posts to `/auth/password`. The password field, Remember me, Forgot password, Google and Apple on the A2 picture are not built. The email tab's error for a forgotten password says to ask the management office.
+Storyboard: A1 brand, EN/BM toggle, illustration. A2 email + password for every role, posting to `/auth/password`, with a "Forgot password?" link (`/auth/password/forgot`). Invite links open a set-password screen (`/auth/invite/accept`). Remember me, Google and Apple on the A2 picture are not built.
 
 `google-services.json` and `GoogleService-Info.plist` come from [../manual.md](../manual.md). Widget tests inject `PhoneAuth` and do not read those files.
 
-- [x] **Step 1: Add `firebase_core` and `firebase_auth`.** Document in the module progress log that `google-services` files come from [../manual.md](../manual.md). The page must still build without them in widget tests (inject a `PhoneAuth` function, defaulting to Firebase).
+- [ ] **Step 1 (redo 2026-10-14): Remove `firebase_auth` and the injected `PhoneAuth`.** Keep `firebase_core` only for messaging (F08).
 
 - [x] **Step 2: Write a widget test.** Tapping BM on the welcome page sets `Session.locale` to `ms` and the sign-in title is the BM string. Submitting a 6-digit code calls the injected verifier once. The Google and Apple buttons are absent.
 
 - [x] **Step 3: Run `flutter test test/access/sign_in_test.dart`.** Expected: FAIL.
 
-- [x] **Step 4: Build A1 and A2.** OTP: `FirebaseAuth.verifyPhoneNumber` with the E.164 number, then `Session.signInWithFirebase`. Email tab: `Session.signInWithPassword`. Errors show `ApiException.message`.
+- [ ] **Step 4 (redo 2026-10-14): Build A1 and A2.** A2 is email + password only (`Session.signInWithPassword`), with a "Forgot password" link. Add the set-password screen for invite links (`Session.acceptInvite`). Errors show `ApiException.message`.
 
 - [x] **Step 5: Run the test.** Expected: PASS. Tick every box in this task. Run `ruby progress.rb`.
 

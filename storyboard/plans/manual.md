@@ -6,15 +6,15 @@ These need accounts, a device, a store, or a secret the agent must not invent.
 
 ## Apple, Google, Firebase
 
-- [ ] Create the Firebase project and note the project id for `credentials.firebase.project_id`.
-- [ ] Enable phone sign-in. Add the Malaysian test numbers you will use in development.
+- [ ] Create the Firebase project (push only) and note the project id for `credentials.firebase.project_id`.
 - [ ] Download `google-services.json` into `tamanly_app/android/app/`. Do not commit it if the repo is public.
 - [ ] Download `GoogleService-Info.plist` into `tamanly_app/ios/Runner/`.
 - [ ] Create an Apple Developer app id. Enable Push Notifications and Associated Domains.
 - [ ] Create an APNs key and upload it to Firebase Cloud Messaging.
 - [ ] Create the Android app in Play Console (package name must match the Flutter app).
-- [ ] Confirm SMS for phone auth works on a real Malaysian SIM, not only the test number.
 - [ ] On a real iPhone and a real Android, accept the notification permission and receive one FCM message with the app in the background and one with it killed.
+
+- [ ] Configure SMTP (sender domain, SPF/DKIM) so invite, reset and receipt emails arrive; test invite and reset links on a real phone (deep link `tamanly://invite/<token>`).
 
 ## Push, links, device permissions
 

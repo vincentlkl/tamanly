@@ -31,7 +31,7 @@ class Session extends ChangeNotifier {
   String locale; // 'en' or 'ms'
   bool get signedIn;
   bool allows(String scope); // owners and tenants: true; sub-tenant: scope is in the selected property
-  Future<void> signInWithFirebase(String idToken);
+  Future<void> acceptInvite(String token, String password);
   Future<void> signInWithPassword(String email, String password);
   Future<void> refresh();
   Future<void> signOut();

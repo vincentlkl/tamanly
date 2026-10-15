@@ -6,7 +6,7 @@
 
 **Architecture:** One Flutter app. A single `Api` client and a single `Session` own tokens, the selected unit, and locale. Feature folders own their screens. The app never hardcodes token lifetime. It trusts `expires_in` from the backend, refreshes through `POST /api/v1/auth/refresh`, and the backend rotates the pair. Access and refresh lifetimes are settings on the server, changed without a new app release.
 
-**Tech stack:** Flutter (stable), Material 3, `go_router`, `package:http`, `flutter_secure_storage`, Firebase Auth (phone) + Firebase Messaging, `mobile_scanner`, `qr_flutter`, `image_picker`, `share_plus`, `url_launcher`. EN and BM via Flutter ARB. Tests are `flutter_test`.
+**Tech stack:** Flutter (stable), Material 3, `go_router`, `package:http`, `flutter_secure_storage`, Firebase Messaging (push only), `mobile_scanner`, `qr_flutter`, `image_picker`, `share_plus`, `url_launcher`. EN and BM via Flutter ARB. Tests are `flutter_test`.
 
 **Spec:** read these before any module.
 
@@ -32,7 +32,7 @@ Intensity: **full**. Still on for the whole plan. The shortest code that matches
 - Non-trivial logic (refresh, scope gate, idempotency key, guard verdict routing) gets one `flutter_test` that fails if it breaks. A static screen does not get a test per widget.
 - Do not store card numbers. Do not format money from cents when the API sent `formatted`. Do not log tokens.
 
-**Package allow-list:** `go_router`, `http`, `flutter_secure_storage`, `firebase_core`, `firebase_auth`, `firebase_messaging`, `mobile_scanner`, `qr_flutter`, `image_picker`, `share_plus`, `url_launcher`, `uuid`, `intl`, `geolocator` (SOS only). Adding any other package requires a dated line under Decisions in this file first.
+**Package allow-list:** `go_router`, `http`, `flutter_secure_storage`, `firebase_core`, `firebase_messaging`, `mobile_scanner`, `qr_flutter`, `image_picker`, `share_plus`, `url_launcher`, `uuid`, `intl`, `geolocator` (SOS only). Adding any other package requires a dated line under Decisions in this file first.
 
 ## Global constraints
 
@@ -52,7 +52,7 @@ Intensity: **full**. Still on for the whole plan. The shortest code that matches
 
 Confirmed 2026-10-05. Agents follow these. Do not reopen them.
 
-1. **Sign-in matches the API, not every control on A2.** Residents, owners, sub-tenants and guards sign in with Firebase phone OTP, then `POST /api/v1/auth/firebase`. Staff sign in with email + password via `POST /api/v1/auth/password`. The A2 password field, Google button and Apple button are not built. The "one-time code" path is the phone flow.
+1. **Sign-in matches the API, not every control on A2.** Everyone (residents, owners, sub-tenants, guards, staff) signs in with email + password via `POST /api/v1/auth/password`. Accounts come from an admin email invite (`POST /api/v1/auth/invite/accept`). Forgot password uses `/auth/password/forgot` + `/reset`. No SMS, no phone OTP. Google and Apple buttons are not built. (Changed 2026-10-14.)
 2. **Sub-tenant chips match the API allow-list** (`bills_view`, `bills_pay`, `visitor_passes`, `facility_booking`). The Permits and Marketplace chips on A6 are not sent.
 3. **The Flutter project is created at `tamanly/tamanly_app`.** Plans stay in this folder.
 4. **No saved-card vault.** G1 "Payment methods" opens the Billplz return path and the bank-transfer instructions. The app does not store a PAN.

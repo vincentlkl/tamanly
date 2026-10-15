@@ -47,4 +47,4 @@ G4: search filters the local FAQ. Chat / call / email use the directory contact 
 
 ## Done when
 
-Sign out clears the session, EN/BM hits `PATCH /me`, a sub-tenant sees their scopes on G2, and notification saves do not invent SMS or quiet-hour fields.
+Sign out clears the session, EN/BM hits `PATCH /me`, a sub-tenant sees their scopes on G2, and notification saves do not invent quiet-hour fields.
