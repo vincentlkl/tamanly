@@ -1,7 +1,7 @@
 # Decision-plan implementation (approved 2026-10-15)
 Haiku build + Opus 5.5 review, both `--effort medium`. Never push. Limit → wait 30m → continue.
 Drive: runs/drive_impl_remaining.sh in screen 'impl'. Progress: runs/impl_progress.log
-Progress: 33% — P04 walk-in notify done
+Progress: 50% — P05-A11 guard permit csv done
 | Plan | Scope | Status |
 |---|---|---|
 | P02 | Visitor categories | done |
