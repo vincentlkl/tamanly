@@ -3,5 +3,5 @@ Runs via runs/drive_fix8.sh in screen 'fix8'. Resume: rerun drive_fix8.sh (finis
 | # | Item | Status | Commit |
 |---|------|--------|--------|
 | 1 | Retry atomically claims failed push rows; two-jobs spec | done | acf5210 |
-| - | Full rspec + minitest | pending |  |
-| - | Opus medium review + fixes | pending |  |
+| - | Full rspec + minitest | done (954 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (955 examples, 0 failures 88 runs, 571 assertions, 0 failures, 0 errors, 0 skips ) | f56c759 |
