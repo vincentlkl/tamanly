@@ -41,8 +41,8 @@ P
       python3 -c "import json;print(json.load(open('$R/DP_$id.json'))['result'])" > "$outfile" 2>/dev/null || true
       [ -s "$outfile" ] && break
     fi
-    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 30m then retry |/" $CL
-    while :; do sleep 1800; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
+    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 15m then retry |/" $CL
+    while :; do sleep 900; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
   done
   sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | done |/" $CL
   touch $R/DP_$id.ok; pct; commit_plan "Plan: invite-only signup ($id)"
@@ -70,8 +70,8 @@ P
       python3 -c "import json;print(json.load(open('$R/DP_$id.json'))['result'])" > "$outfile" 2>/dev/null || true
       [ -s "$outfile" ] && break
     fi
-    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 30m then retry |/" $CL
-    while :; do sleep 1800; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
+    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 15m then retry |/" $CL
+    while :; do sleep 900; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
   done
   sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | done |/" $CL
   touch $R/DP_$id.ok; pct; commit_plan "Plan: visitor categories ($id)"
@@ -98,8 +98,8 @@ P
       python3 -c "import json;print(json.load(open('$R/DP_$id.json'))['result'])" > "$outfile" 2>/dev/null || true
       [ -s "$outfile" ] && break
     fi
-    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 30m then retry |/" $CL
-    while :; do sleep 1800; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
+    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 15m then retry |/" $CL
+    while :; do sleep 900; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
   done
   sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | done |/" $CL
   touch $R/DP_$id.ok; pct; commit_plan "Plan: booking limit ($id)"
@@ -127,8 +127,8 @@ P
       python3 -c "import json;print(json.load(open('$R/DP_$id.json'))['result'])" > "$outfile" 2>/dev/null || true
       [ -s "$outfile" ] && break
     fi
-    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 30m then retry |/" $CL
-    while :; do sleep 1800; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
+    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 15m then retry |/" $CL
+    while :; do sleep 900; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
   done
   sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | done |/" $CL
   touch $R/DP_$id.ok; pct; commit_plan "Plan: single-app guard role ($id)"
@@ -164,8 +164,8 @@ P
       python3 -c "import json;print(json.load(open('$R/DP_$id.json'))['result'])" > "$outfile" 2>/dev/null || true
       [ -s "$outfile" ] && break
     fi
-    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 30m then retry |/" $CL
-    while :; do sleep 1800; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
+    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 15m then retry |/" $CL
+    while :; do sleep 900; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
   done
   sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | done |/" $CL
   touch $R/DP_$id.ok; pct; commit_plan "Plan: backend gaps ($id)"
@@ -195,8 +195,8 @@ P
       python3 -c "import json;print(json.load(open('$R/DP_$id.json'))['result'])" > "$outfile" 2>/dev/null || true
       [ -s "$outfile" ] && break
     fi
-    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 30m then retry |/" $CL
-    while :; do sleep 1800; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
+    sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | LIMIT hit $(date +%H:%M), waiting 15m then retry |/" $CL
+    while :; do sleep 900; $CLAUDE -p "ok" --model $M --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break; done
   done
   sed -i '' "s/^| $id | \(.*\) | [^|]* |$/| $id | \1 | done |/" $CL
   touch $R/DP_$id.ok; pct; commit_plan "Plan: decision plans index ($id)"

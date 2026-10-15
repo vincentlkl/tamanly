@@ -168,7 +168,7 @@ if [ ! -f $R/P01_build.ok ]; then
   if [ ! -s $R/P01_build.json ] || grep -q '"is_error":true' $R/P01_build.json; then
     # limit wait loop
     while :; do
-      sleep 1800
+      sleep 900
       /Users/vincent/.local/bin/claude -p "ok" --model $HAIKU --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break
     done
     (cd $ROOT && /Users/vincent/.local/bin/claude -p "$(cat $R/P01_build.txt)" --model $HAIKU --effort low --output-format json --dangerously-skip-permissions < /dev/null > $R/P01_build.json 2>$R/P01_build.err)

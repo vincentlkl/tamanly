@@ -12,9 +12,9 @@ while :; do
     echo done > $R/${MOD}_${ROLE}.done
     return 0 2>/dev/null || exit 0
   fi
-  echo "LIMIT/ERR $(date +%H:%M) waiting 30m for $MOD $ROLE" >> $R/${MOD}_${ROLE}.err
+  echo "LIMIT/ERR $(date +%H:%M) waiting 15m for $MOD $ROLE" >> $R/${MOD}_${ROLE}.err
   while :; do
-    sleep 1800
+    sleep 900
     $CLAUDE -p "ok" --model $MODEL --effort low --output-format json < /dev/null 2>/dev/null | grep -q '"is_error":false' && break
   done
 done
