@@ -11,7 +11,8 @@ HAIKU=claude-haiku-5-5
 OPUS=claude-opus-5-5
 GROK=grok-4.7
 EFFORT=low
-export PATH="/Users/vincent/Developer/flutter/bin:$PATH"
+export PATH="/usr/bin:/Users/vincent/Developer/flutter/bin:$PATH"
+export GIT=/usr/bin/git
 
 mark(){ # id status
   python3 -c '
@@ -88,8 +89,10 @@ X
       exit 1
     fi
     cd $APP
-    flutter analyze > $R/${MOD}_build_analyze.log 2>&1 || { mark "$MOD" "analyze red"; progress "$PCT" "$MOD analyze red"; exit 1; }
-    flutter test > $R/${MOD}_build_test.log 2>&1 || { mark "$MOD" "tests red"; progress "$PCT" "$MOD tests red"; exit 1; }
+    flutter analyze > $R/${MOD}_build_analyze.log 2>&1
+    rg -q "No issues found!" $R/${MOD}_build_analyze.log || { mark "$MOD" "analyze red"; progress "$PCT" "$MOD analyze red"; exit 1; }
+    flutter test > $R/${MOD}_build_test.log 2>&1
+    rg -q "All tests passed!" $R/${MOD}_build_test.log || { mark "$MOD" "tests red"; progress "$PCT" "$MOD tests red"; exit 1; }
     /usr/bin/git add -A -- . ':!build' ':!.dart_tool'
     /usr/bin/git add "docs/plans/mobile-app/$FILE" 2>/dev/null || true
     /usr/bin/git diff --cached --quiet || /usr/bin/git commit -qm "$MOD: $TITLE (build)"
@@ -100,8 +103,10 @@ X
   if [ ! -f $R/${MOD}_review.ok ]; then
     run_review "$MOD"
     cd $APP
-    flutter analyze > $R/${MOD}_review_analyze.log 2>&1 || { mark "$MOD" "analyze red after review"; exit 1; }
-    flutter test > $R/${MOD}_review_test.log 2>&1 || { mark "$MOD" "tests red after review"; exit 1; }
+    flutter analyze > $R/${MOD}_review_analyze.log 2>&1
+    rg -q "No issues found!" $R/${MOD}_review_analyze.log || { mark "$MOD" "analyze red after review"; exit 1; }
+    flutter test > $R/${MOD}_review_test.log 2>&1
+    rg -q "All tests passed!" $R/${MOD}_review_test.log || { mark "$MOD" "tests red after review"; exit 1; }
     /usr/bin/git add -A -- . ':!build' ':!.dart_tool'
     /usr/bin/git diff --cached --quiet || /usr/bin/git commit -qm "$MOD: $TITLE (review fixes)"
     touch $R/${MOD}_review.ok
