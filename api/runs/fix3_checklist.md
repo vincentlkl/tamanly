@@ -6,5 +6,5 @@ Runs via runs/drive_fix3.sh in screen 'fix3'. Resume: rerun drive_fix3.sh (finis
 | 2 | Recurring job sends due scheduled broadcasts once via BroadcastPushJob | done | 27ba45d |
 | 3 | Announcement push off still creates in-app inbox row | done | 04dcda6 |
 | 4 | Broadcast recipient_count counts distinct people, not devices | done | bf2c2e5 |
-| - | Full rspec + minitest | pending |  |
-| - | Opus medium review + fixes | pending |  |
+| - | Full rspec + minitest | done (926 examples, 0 failures 87 runs, 565 assertions, 0 failures, 0 errors, 0 skips ) | |
+| - | Opus medium review + fixes | done (929 examples, 0 failures 87 runs, 565 assertions, 0 failures, 0 errors, 0 skips ) | e0a4d79 |
